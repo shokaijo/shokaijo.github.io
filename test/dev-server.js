@@ -10,7 +10,7 @@ const root = path.join(__dirname, '..', 'docs');
 const env = createEnv();
 env.sandbox.setup();
 env.sheets['設定'].data.find((r) => r[0] === '画面のURL')[1] = `http://localhost:${port}/`;
-const link = env.sandbox.addReferrer('紹介する人A', '店');
+const link = env.sandbox.addReferrer('紹介元A', '店');
 const refId = link.split('r=')[1];
 const codes = Object.fromEntries(env.sheets['店'].data.slice(1).map((r) => [r[0], r[6]]));
 fs.writeFileSync(path.join(__dirname, 'dev-state.json'), JSON.stringify({ refId, codes, link }, null, 2));

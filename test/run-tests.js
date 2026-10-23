@@ -49,7 +49,7 @@ function shopCode(env, shopId) {
 
 test('初期設定でシートと見本の店、毎日の削除ができる', () => {
   const env = fresh();
-  for (const n of ['設定', '店', '紹介する人', '紹介状', '集計']) assert.ok(env.sheets[n], n);
+  for (const n of ['設定', '店', '紹介元', '紹介状', '集計']) assert.ok(env.sheets[n], n);
   assert.strictEqual(env.sheets['店'].data.length, 4);
   assert.strictEqual(env.triggers.length, 1);
   env.sandbox.setup(); // 2回目でも重複しない
@@ -58,18 +58,18 @@ test('初期設定でシートと見本の店、毎日の削除ができる', ()
   assert.match(String(shopCode(env, 'shop-a')), /^\d{4}$/);
 });
 
-test('紹介する人を追加すると、紹介用リンクが返る', () => {
+test('紹介元を追加すると、紹介用リンクが返る', () => {
   const env = fresh();
-  const link = env.sandbox.addReferrer('紹介する人A', '店');
+  const link = env.sandbox.addReferrer('紹介元A', '店');
   assert.match(link, /^https:\/\/example\.github\.io\/shokaijo\/\?r=R[0-9a-f]{12}$/);
 });
 
-test('紹介する人の画面：呼び名と店の一覧', () => {
+test('紹介元の画面：呼び名と店の一覧', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const res = env.get({ action: 'referrer', r });
   assert.strictEqual(res.ok, true);
-  assert.strictEqual(res.data.name, '紹介する人A');
+  assert.strictEqual(res.data.name, '紹介元A');
   assert.deepStrictEqual(res.data.shops.map((s) => s.id), ['shop-a', 'shop-b', 'shop-c']);
   assert.ok(!('code' in res.data.shops[0]), '確認番号は画面に出さない');
   assert.ok(!JSON.stringify(res).includes(String(shopCode(env, 'shop-a'))) || true);
@@ -82,11 +82,11 @@ test('知らない紹介IDは断る', () => {
 
 test('紹介状を作ると、30日後の期限つきで未使用になる', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const issued = issue(env, r, 'shop-b');
   assert.strictEqual(issued.ok, true);
   const res = env.get({ action: 'letter', id: issued.data.id });
-  assert.strictEqual(res.data.from, '紹介する人A');
+  assert.strictEqual(res.data.from, '紹介元A');
   assert.strictEqual(res.data.shop.name, '見本の店B');
   assert.strictEqual(res.data.status, 'unused');
   const row = letterRow(env, issued.data.id);
@@ -97,7 +97,7 @@ test('紹介状を作ると、30日後の期限つきで未使用になる', () 
 
 test('呼び名：4文字まで保存でき、5文字は断る', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   const ok = env.post({ action: 'name', id, nickname: 'まっ', honorific: 'ちゃん' });
   assert.strictEqual(ok.data.nickname, 'まっ');
@@ -112,7 +112,7 @@ test('呼び名：4文字まで保存でき、5文字は断る', () => {
 
 test('店の確認番号が違うと断り、5回で止まる', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   for (let i = 1; i <= 4; i++) {
     assert.deepStrictEqual(env.post({ action: 'redeem', id, code: '0000' }), { ok: false, error: 'wrong_code' });
@@ -124,7 +124,7 @@ test('店の確認番号が違うと断り、5回で止まる', () => {
 
 test('正しい確認番号で使用済みになり、2回目は使えない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   env.post({ action: 'name', id, nickname: 'ケン', honorific: 'さん' });
   const used = env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) });
@@ -136,7 +136,7 @@ test('正しい確認番号で使用済みになり、2回目は使えない', (
 
 test('別の店の確認番号では使えない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   const codeYoin = String(shopCode(env, 'shop-a'));
   const codeWig = String(shopCode(env, 'shop-b'));
@@ -147,7 +147,7 @@ test('別の店の確認番号では使えない', () => {
 
 test('期限の日は1日中使え、翌日から期限切れ', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   const now = new Date();
   setLetter(env, id, '期限', now); // 今日が期限
@@ -157,12 +157,12 @@ test('期限の日は1日中使え、翌日から期限切れ', () => {
   assert.deepStrictEqual(env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) }), { ok: false, error: 'letter_expired' });
 });
 
-test('紹介する人を止めると、新しい紹介状も未使用の紹介状も使えない', () => {
+test('紹介元を止めると、新しい紹介状も未使用の紹介状も使えない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const k = shareOf(env, r);
   const id = issue(env, r, 'shop-b').data.id;
-  const d = env.sheets['紹介する人'].data;
+  const d = env.sheets['紹介元'].data;
   d.find((row) => row[0] === r)[d[0].indexOf('有効')] = false;
   assert.deepStrictEqual(env.post({ action: 'issue', k, s: 'shop-b' }), { ok: false, error: 'referrer_stopped' });
   assert.deepStrictEqual(env.get({ action: 'referrer', r }), { ok: false, error: 'referrer_stopped' });
@@ -171,7 +171,7 @@ test('紹介する人を止めると、新しい紹介状も未使用の紹介�
 
 test('止めた店は一覧に出ず、紹介状も作れない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const d = env.sheets['店'].data;
   d.find((row) => row[0] === 'shop-c')[d[0].indexOf('有効')] = false;
   assert.deepStrictEqual(env.get({ action: 'referrer', r }).data.shops.map((s) => s.id), ['shop-a', 'shop-b']);
@@ -180,7 +180,7 @@ test('止めた店は一覧に出ず、紹介状も作れない', () => {
 
 test('呼び名の自動削除：使用済みや期限切れから30日を過ぎたものだけ消す', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const day = 86400000;
   const now = Date.now();
   const mk = (name) => {
@@ -215,9 +215,9 @@ test('壊れた入力や知らない操作には、内部のエラーを見せ�
   assert.deepStrictEqual(env.get({ action: 'letter', id: 'Lnope' }), { ok: false, error: 'letter_not_found' });
 });
 
-test('紹介状のリンクの共有IDでは、紹介する人のページは開けない', () => {
+test('紹介状のリンクの共有IDでは、紹介元のページは開けない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const k = shareOf(env, r);
   assert.match(k, /^K[0-9a-f]{12}$/);
   assert.notStrictEqual(k, r);
@@ -227,7 +227,7 @@ test('紹介状のリンクの共有IDでは、紹介する人のページは開
 
 test('店ごとの誤入力が重なると、その店はしばらく受け付けない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const wrong = String(shopCode(env, 'shop-b')) === '1000' ? '1001' : '1000';
   let last;
   for (let i = 0; i < 15; i++) {
@@ -244,7 +244,7 @@ test('店ごとの誤入力が重なると、その店はしばらく受け付�
 
 test('店の確認番号が空なら、紹介状を減らさずに知らせる', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const d = env.sheets['店'].data;
   d.find((row) => row[0] === 'shop-b')[d[0].indexOf('お店の確認番号')] = '';
   const id = issue(env, r, 'shop-b').data.id;
@@ -254,7 +254,7 @@ test('店の確認番号が空なら、紹介状を減らさずに知らせる',
 
 test('式に見える呼び名は、文字として保存する', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介する人A', '店').split('r=')[1];
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   const res = env.post({ action: 'name', id, nickname: '=H2', honorific: 'なし' });
   assert.strictEqual(res.data.nickname, '=H2');

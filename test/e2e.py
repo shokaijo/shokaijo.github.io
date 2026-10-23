@@ -36,10 +36,10 @@ with sync_playwright() as p:
     page.on("console", lambda m: m.type == "error" and errors.append(m.text))
     page.on("pageerror", lambda e: errors.append(str(e)))
 
-    # 1. 紹介する人の画面
+    # 1. 紹介元の画面
     page.goto(f"{BASE}/?r={ref}")
     page.wait_for_selector("#app:not(.hidden)")
-    check("紹介する人の呼び名が出る", "紹介する人Aの紹介用ページ" in page.inner_text("h1"))
+    check("紹介元の呼び名が出る", "紹介元Aの紹介用ページ" in page.inner_text("h1"))
     check("店が3つ並ぶ", page.locator(".shop").count() == 3)
     page.screenshot(path=str(out / "1_referrer.png"), full_page=True)
 
@@ -47,11 +47,11 @@ with sync_playwright() as p:
     page.wait_for_selector("#send:not(.hidden)")
     line = page.get_attribute("#line", "href")
     text = urllib.parse.unquote(line.split("text=", 1)[1])
-    check("LINEの文面に紹介元と店名", "紹介する人Aから、見本の店Bへの紹介状です。" in text)
+    check("LINEの文面に紹介元と店名", "紹介元Aから、見本の店Bへの紹介状です。" in text)
     check("LINEの文面に有効日数", "30日間有効" in text)
     letter_link = text.strip().splitlines()[-1]
     check("送るリンクは共有IDと店入り", "k=K" in letter_link and "s=shop-b" in letter_link)
-    check("送るリンクに紹介する人のIDは入らない", ref not in letter_link)
+    check("送るリンクに紹介元のIDは入らない", ref not in letter_link)
     page.click("#show-qr")
     page.wait_for_selector("#qr svg")
     page.screenshot(path=str(out / "2_referrer_qr.png"), full_page=True)
@@ -61,7 +61,7 @@ with sync_playwright() as p:
     page.wait_for_selector("#app:not(.hidden)")
     check("URLが紹介状IDに置き換わる", "id=L" in page.url)
     letter_id = urllib.parse.parse_qs(urllib.parse.urlparse(page.url).query)["id"][0]
-    check("紹介元が出る", page.inner_text("#from") == "紹介する人A")
+    check("紹介元が出る", page.inner_text("#from") == "紹介元A")
     check("行き先が出る", "見本の店B" in page.inner_text("#to"))
     check("期限が日付で出る", "年" in page.inner_text("#expires"))
     page.screenshot(path=str(out / "3_letter.png"), full_page=True)

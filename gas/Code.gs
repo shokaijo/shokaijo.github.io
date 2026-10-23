@@ -5,15 +5,15 @@
  * シート
  *   設定        … 有効期限の日数、呼び名を消すまでの日数、画面のURL
  *   店          … 紹介先になる店。お店の確認番号は店で「使用済み」にするときに使う
- *   紹介する人  … 紹介する人ごとに1行。有効を FALSE にすると、そのリンクは止まる
+ *   紹介元  … 紹介元ごとに1行。有効を FALSE にすると、そのリンクは止まる
  *   紹介状      … 受け取った人がリンクを開くたびに1行できる
- *   集計        … 紹介する人ごと・店ごとの数（式で自動）
+ *   集計        … 紹介元ごと・店ごとの数（式で自動）
  */
 
 var SHEET = {
   SETTINGS: '設定',
   SHOPS: '店',
-  REFERRERS: '紹介する人',
+  REFERRERS: '紹介元',
   LETTERS: '紹介状',
   SUMMARY: '集計'
 };
@@ -22,7 +22,7 @@ var HEAD = {
   SETTINGS: ['項目', '値', '説明'],
   SHOPS: ['店ID', '店名', 'エリア', '営業時間', '定休日', '地図の検索語', 'お店の確認番号', '有効'],
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ'],
-  LETTERS: ['紹介状ID', '紹介ID', '紹介する人', '行き先の店ID', '行き先', '作成日時', '期限',
+  LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '呼ばれたい名前', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時']
 };
 
@@ -98,7 +98,7 @@ function withLock_(fn) {
 /* 読み取り                                                            */
 /* ------------------------------------------------------------------ */
 
-/** 紹介する人の画面：呼び名と、紹介できる店の一覧 */
+/** 紹介元の画面：呼び名と、紹介できる店の一覧 */
 function getReferrer_(refId) {
   var ref = findReferrer_('紹介ID', refId);
   if (!ref) throw userError_('referrer_not_found');
@@ -134,7 +134,7 @@ function issueLetter_(shareId, shopId) {
   var row = {};
   row['紹介状ID'] = id;
   row['紹介ID'] = ref.id;
-  row['紹介する人'] = ref.name;
+  row['紹介元'] = ref.name;
   row['行き先の店ID'] = shop['店ID'];
   row['行き先'] = shop['店名'];
   row['作成日時'] = now;
@@ -240,7 +240,7 @@ function purgeNamesLocked_() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('紹介状')
     .addItem('初期設定（最初に1回）', 'setup')
-    .addItem('紹介する人を追加', 'addReferrerFromMenu')
+    .addItem('紹介元を追加', 'addReferrerFromMenu')
     .addItem('呼び名の自動削除をいま実行', 'purgeNamesFromMenu')
     .addToUi();
 }
@@ -288,17 +288,17 @@ function setup() {
 
 function addReferrerFromMenu() {
   var ui = SpreadsheetApp.getUi();
-  var nameRes = ui.prompt('紹介する人を追加', '画面に出る呼び名。敬称まで入れてください（例：〇〇さん、まっちゃん）', ui.ButtonSet.OK_CANCEL);
+  var nameRes = ui.prompt('紹介元を追加', '画面に出る呼び名。敬称まで入れてください（例：〇〇さん、まっちゃん）', ui.ButtonSet.OK_CANCEL);
   if (nameRes.getSelectedButton() !== ui.Button.OK) return;
   var name = nameRes.getResponseText().trim();
   if (!name) return;
   var typeRes = ui.prompt('種類', '「店」または「常連」', ui.ButtonSet.OK_CANCEL);
   if (typeRes.getSelectedButton() !== ui.Button.OK) return;
   var link = addReferrer(name, typeRes.getResponseText().trim() || '常連');
-  ui.alert('追加しました', name + ' さんの紹介用リンク：\n' + link, ui.ButtonSet.OK);
+  ui.alert('追加しました', name + ' の紹介用リンク：\n' + link, ui.ButtonSet.OK);
 }
 
-/** 紹介する人を1行足して、紹介用リンクを返す */
+/** 紹介元を1行足して、紹介用リンクを返す */
 function addReferrer(name, kind) {
   var id = newId_('R');
   var row = {};
@@ -321,9 +321,9 @@ function purgeNamesFromMenu() {
 function buildSummary_() {
   var sh = ensureSheet_(SHEET.SUMMARY, []);
   sh.clear();
-  sh.getRange('A1:F1').setValues([['紹介ID', '紹介する人', '紹介状の数', '来店', '期限切れ', '来店までの平均日数']]);
-  sh.getRange('A2').setFormula("=IFERROR(FILTER('紹介する人'!A2:A, '紹介する人'!A2:A<>\"\"), \"\")");
-  sh.getRange('B2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, IFERROR(VLOOKUP(A2:A, {'紹介する人'!A2:A, '紹介する人'!C2:C}, 2, FALSE), \"\")))");
+  sh.getRange('A1:F1').setValues([['紹介ID', '紹介元', '紹介状の数', '来店', '期限切れ', '来店までの平均日数']]);
+  sh.getRange('A2').setFormula("=IFERROR(FILTER('紹介元'!A2:A, '紹介元'!A2:A<>\"\"), \"\")");
+  sh.getRange('B2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, IFERROR(VLOOKUP(A2:A, {'紹介元'!A2:A, '紹介元'!C2:C}, 2, FALSE), \"\")))");
   sh.getRange('C2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, COUNTIFS('紹介状'!B2:B, A2:A)))");
   sh.getRange('D2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, COUNTIFS('紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"使用済み\")))");
   sh.getRange('E2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, COUNTIFS('紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"未使用\", '紹介状'!G2:G, \"<\"&TODAY())))");
@@ -354,7 +354,7 @@ function publicLetter_(row) {
   var shop = findShop_(row['行き先の店ID']);
   return {
     id: row['紹介状ID'],
-    from: row['紹介する人'],
+    from: row['紹介元'],
     shop: shop ? publicShop_(shop) : { id: row['行き先の店ID'], name: row['行き先'] },
     expires: formatDate_(toDate_(row['期限'])),
     status: statusCode_(effectiveStatus_(row)),
@@ -364,7 +364,7 @@ function publicLetter_(row) {
   };
 }
 
-/** シート上の状態に、期限と紹介する人の停止を重ねた「いまの状態」 */
+/** シート上の状態に、期限と紹介元の停止を重ねた「いまの状態」 */
 function effectiveStatus_(row) {
   var s = row['状態'] || STATUS.UNUSED;
   if (s !== STATUS.UNUSED) return s;
@@ -408,7 +408,7 @@ function indexOf_(head) {
   return m;
 }
 
-/** display=true なら表示どおりの文字で読む（店・紹介する人の表は日付や数字に化けさせない） */
+/** display=true なら表示どおりの文字で読む（店・紹介元の表は日付や数字に化けさせない） */
 function readTable_(name, head, display) {
   var range = sheet_(name).getDataRange();
   var values = display ? range.getDisplayValues() : range.getValues();
