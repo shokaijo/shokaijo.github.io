@@ -4,6 +4,7 @@
     referrer_not_found: 'このリンクは見つかりませんでした。紹介してくれた方に確かめてください。',
     referrer_stopped: 'このリンクは、いまは使えません。',
     shop_not_found: 'このお店は、いまは紹介状を受け付けていません。',
+    own_shop: '自分のお店への紹介状は作れません。',
     letter_not_found: 'この紹介状は見つかりませんでした。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',

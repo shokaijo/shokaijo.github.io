@@ -261,4 +261,19 @@ test('式に見える呼び名は、文字として保存する', () => {
   assert.strictEqual(letterRow(env, id)['呼ばれたい名前'], "'=H2");
 });
 
+test('店の紹介元には、自分の店が一覧に出ず、紹介状も作れない', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('見本の店B', '店', 'shop-b').split('r=')[1];
+  const res = env.get({ action: 'referrer', r });
+  assert.deepStrictEqual(res.data.shops.map((s) => s.id), ['shop-a', 'shop-c']);
+  assert.deepStrictEqual(env.post({ action: 'issue', k: res.data.shareId, s: 'shop-b' }), { ok: false, error: 'own_shop' });
+  assert.strictEqual(env.post({ action: 'issue', k: res.data.shareId, s: 'shop-c' }).ok, true);
+});
+
+test('自分の店IDが空の紹介元（常連）は、全部の店が出る', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('まっちゃん', '常連').split('r=')[1];
+  assert.strictEqual(env.get({ action: 'referrer', r }).data.shops.length, 3);
+});
+
 console.log(`\n${passed} 件 成功`);

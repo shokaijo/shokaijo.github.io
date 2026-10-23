@@ -21,7 +21,7 @@ var SHEET = {
 var HEAD = {
   SETTINGS: ['項目', '値', '説明'],
   SHOPS: ['店ID', '店名', 'エリア', '営業時間', '定休日', '地図の検索語', 'お店の確認番号', '有効'],
-  REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ'],
+  REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '呼ばれたい名前', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時']
 };
@@ -104,7 +104,7 @@ function getReferrer_(refId) {
   if (!ref) throw userError_('referrer_not_found');
   if (!ref.active) throw userError_('referrer_stopped');
   var shops = readTable_(SHEET.SHOPS, HEAD.SHOPS, true)
-    .filter(function (s) { return isTrue_(s['有効']) && s['店ID']; })
+    .filter(function (s) { return isTrue_(s['有効']) && s['店ID'] && String(s['店ID']) !== ref.ownShopId; })
     .map(publicShop_);
   return { name: ref.name, shareId: ref.shareId, shops: shops, expiryDays: settingNumber_('有効期限（日）', 30) };
 }
@@ -125,6 +125,7 @@ function issueLetter_(shareId, shopId) {
   var ref = findReferrer_('共有ID', shareId);
   if (!ref) throw userError_('referrer_not_found');
   if (!ref.active) throw userError_('referrer_stopped');
+  if (ref.ownShopId && String(shopId) === ref.ownShopId) throw userError_('own_shop');
   var shop = findShop_(shopId);
   if (!shop || !isTrue_(shop['有効'])) throw userError_('shop_not_found');
 
@@ -294,12 +295,18 @@ function addReferrerFromMenu() {
   if (!name) return;
   var typeRes = ui.prompt('種類', '「店」または「常連」', ui.ButtonSet.OK_CANCEL);
   if (typeRes.getSelectedButton() !== ui.Button.OK) return;
-  var link = addReferrer(name, typeRes.getResponseText().trim() || '常連');
+  var kind = typeRes.getResponseText().trim() || '常連';
+  var own = '';
+  if (kind === '店') {
+    var ownRes = ui.prompt('自分の店', 'その店の店ID（「店」シートのA列）。入れると、一覧から自分の店を外します', ui.ButtonSet.OK_CANCEL);
+    if (ownRes.getSelectedButton() === ui.Button.OK) own = ownRes.getResponseText().trim();
+  }
+  var link = addReferrer(name, kind, own);
   ui.alert('追加しました', name + ' の紹介用リンク：\n' + link, ui.ButtonSet.OK);
 }
 
 /** 紹介元を1行足して、紹介用リンクを返す */
-function addReferrer(name, kind) {
+function addReferrer(name, kind, ownShopId) {
   var id = newId_('R');
   var row = {};
   row['紹介ID'] = id;
@@ -309,6 +316,7 @@ function addReferrer(name, kind) {
   row['有効'] = true;
   row['紹介用リンク'] = referrerLink_(id);
   row['メモ'] = '';
+  row['自分の店ID'] = ownShopId || '';
   appendRow_(SHEET.REFERRERS, HEAD.REFERRERS, row);
   return row['紹介用リンク'];
 }
@@ -442,7 +450,8 @@ function findReferrer_(field, value) {
         id: rows[i]['紹介ID'],
         shareId: rows[i]['共有ID'],
         name: String(rows[i]['呼び名']),
-        active: isTrue_(rows[i]['有効'])
+        active: isTrue_(rows[i]['有効']),
+        ownShopId: String(rows[i]['自分の店ID'] || '').trim()
       };
     }
   }
