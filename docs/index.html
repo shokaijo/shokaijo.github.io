@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>紹介状を送る</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+  <div id="loading" class="loading">読み込んでいます…</div>
+
+  <div id="error" class="hidden">
+    <p class="eyebrow">紹介状</p>
+    <div class="card"><p id="error-text"></p></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <p class="eyebrow">紹介状を送る</p>
+    <h1><span id="ref-name"></span>の紹介用ページ</h1>
+    <p class="muted">紹介したいお店を選んで、LINEなどで送ってください。受け取った人が開くと、その人だけの紹介状ができます。</p>
+
+    <section class="card">
+      <h2>1. 紹介するお店</h2>
+      <div id="shops" class="shop-list" role="group" aria-label="紹介するお店"></div>
+    </section>
+
+    <section id="send" class="card hidden">
+      <h2>2. 送る</h2>
+      <p class="muted" id="send-lead"></p>
+      <a id="line" class="btn line" href="#" target="_blank" rel="noopener">LINEで送る</a>
+      <button id="share" class="btn hidden" type="button">ほかのアプリで送る</button>
+      <button id="copy" class="btn" type="button">リンクをコピー</button>
+      <button id="show-qr" class="btn" type="button" aria-expanded="false">その場でQRを見せる</button>
+      <div id="qr-box" class="hidden">
+        <div id="qr" class="qr" aria-label="紹介状のQRコード"></div>
+        <p class="muted" style="text-align:center">相手のスマホのカメラで読んでもらってください。</p>
+      </div>
+    </section>
+
+    <div class="notice">
+      このページは、<span id="ref-name-2"></span>専用です。このページのリンクそのものは、ほかの人に渡さないでください。
+    </div>
+  </div>
+
+  <p class="foot">紹介状は試験運用中です</p>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  var S = window.Shokaijo;
+  var refId = S.param('r');
+  var state = { name: '', shareId: '', days: 30, shop: null };
+
+  function show(id) {
+    ['loading', 'error', 'app'].forEach(function (x) {
+      document.getElementById(x).classList.toggle('hidden', x !== id);
+    });
+  }
+
+  function fail(err) {
+    document.getElementById('error-text').textContent = S.message(err);
+    show('error');
+  }
+
+  function letterUrl(shopId) {
+    var u = new URL('letter.html', location.href);
+    u.search = '?k=' + encodeURIComponent(state.shareId) + '&s=' + encodeURIComponent(shopId);
+    return u.toString();
+  }
+
+  function messageText(shop, url) {
+    return state.name + 'から、' + shop.name + 'への紹介状です。\n' +
+      '開くと、あなた専用の紹介状ができます（' + state.days + '日間有効）。\n' + url;
+  }
+
+  function selectShop(shop, btn) {
+    state.shop = shop;
+    Array.prototype.forEach.call(document.querySelectorAll('.shop'), function (b) {
+      b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+    });
+    var url = letterUrl(shop.id);
+    var text = messageText(shop, url);
+    document.getElementById('send-lead').textContent = shop.name + 'への紹介状を送ります。';
+    document.getElementById('line').href = S.lineShareUrl(text);
+    document.getElementById('qr').innerHTML = S.qrSvg(url);
+    document.getElementById('qr-box').classList.add('hidden');
+    document.getElementById('show-qr').setAttribute('aria-expanded', 'false');
+    var send = document.getElementById('send');
+    send.classList.remove('hidden');
+    send.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function render(data) {
+    state.name = data.name;
+    state.days = data.expiryDays || 30;
+    state.shareId = data.shareId;
+    document.getElementById('ref-name').textContent = data.name;
+    document.getElementById('ref-name-2').textContent = data.name;
+    var box = document.getElementById('shops');
+    box.innerHTML = '';
+    if (!data.shops.length) {
+      box.innerHTML = '<p class="muted">いま紹介できるお店はありません。</p>';
+    }
+    data.shops.forEach(function (shop) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'shop';
+      b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = '<span class="name">' + S.esc(shop.name) + '</span>' +
+        '<span class="meta">' + S.esc([shop.area, shop.closed ? '定休日：' + shop.closed : ''].filter(Boolean).join('・')) + '</span>';
+      b.addEventListener('click', function () { selectShop(shop, b); });
+      box.appendChild(b);
+    });
+    show('app');
+  }
+
+  document.getElementById('copy').addEventListener('click', function () {
+    if (!state.shop) return;
+    S.copyText(letterUrl(state.shop.id))
+      .then(function () { S.toast('リンクをコピーしました'); })
+      .catch(function () { S.toast('コピーできませんでした'); });
+  });
+
+  if (navigator.share) {
+    var shareBtn = document.getElementById('share');
+    shareBtn.classList.remove('hidden');
+    shareBtn.addEventListener('click', function () {
+      if (!state.shop) return;
+      var url = letterUrl(state.shop.id);
+      navigator.share({ title: '紹介状', text: state.name + 'から、' + state.shop.name + 'への紹介状です。', url: url })
+        .catch(function () { /* 閉じただけ */ });
+    });
+  }
+
+  document.getElementById('show-qr').addEventListener('click', function () {
+    var box = document.getElementById('qr-box');
+    var open = box.classList.toggle('hidden') === false;
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  if (!refId) {
+    fail(new Error('referrer_not_found'));
+    return;
+  }
+  S.get({ action: 'referrer', r: refId }).then(render).catch(fail);
+})();
+</script>
+</body>
+</html>
