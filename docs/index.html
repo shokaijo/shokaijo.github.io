@@ -40,6 +40,38 @@
       </div>
     </section>
 
+    <section class="card about">
+      <h2>紹介状でできること</h2>
+
+      <h3>紹介するあなたに</h3>
+      <p>好きなお店を、自信をもって勧められます。誰の紹介かが相手のお店に伝わるので、紹介した人として覚えてもらいやすくなります。</p>
+      <p class="muted">たとえば、こんな場面で使えます。</p>
+      <ul>
+        <li>ラストオーダーのあとに「この先なら、あの店がまだ開いています」と送る</li>
+        <li>満席でお断りするお客さんに、近くで入れそうなお店を勧める</li>
+        <li>「ラムが好きなら、あのバーのマスターに聞いてみて」と、好みに合う店を伝える</li>
+      </ul>
+
+      <h3>紹介されたお店に</h3>
+      <p>信頼できるお店や常連からの紹介なので、お店の雰囲気に合うお客さんが来やすくなります。誰の紹介で来たかが分かり、宣伝の費用もかかりません。</p>
+      <p class="muted">たとえば、こんな場面を想定しています。</p>
+      <ul>
+        <li>近くの店のマスターが勧めてくれたお客さんが、そのまま常連になる</li>
+        <li>初めてのお客さんとも「あのマスターの紹介なんですね」と話が始められる</li>
+        <li>呼び名が分かっているので、最初の一杯から名前で声をかけられる</li>
+      </ul>
+
+      <h3>紹介を受け取った人に</h3>
+      <p>初めてのお店でも、「あのお店からの紹介で来ました」と入りやすくなります。呼び名を伝えておけば、最初から名前で迎えてもらいやすくなります。</p>
+
+      <h3>送ったあとの流れ</h3>
+      <ol>
+        <li>受け取った人がリンクを開くと、その人だけの紹介状ができます（<span class="days">30</span>日間有効）</li>
+        <li>お店で画面を見せると、紹介状のことがお店に伝わります。呼び名を入れていれば、お店はその名前で迎えられます</li>
+        <li>紹介状は1回使うと終わりです。お店の手間は確認番号を入れるだけで、費用はかかりません</li>
+      </ol>
+    </section>
+
     <div class="notice">
       このページは、<span id="ref-name-2"></span>専用です。このページのリンクそのものは、ほかの人に渡さないでください。
     </div>
@@ -101,6 +133,7 @@
     state.name = data.name;
     state.days = data.expiryDays || 30;
     state.shareId = data.shareId;
+    Array.prototype.forEach.call(document.querySelectorAll('.days'), function (el) { el.textContent = state.days; });
     document.getElementById('ref-name').textContent = data.name;
     document.getElementById('ref-name-2').textContent = data.name;
     var box = document.getElementById('shops');
