@@ -41,6 +41,10 @@ with sync_playwright() as p:
     page.wait_for_selector("#app:not(.hidden)")
     check("紹介元の呼び名が出る", "紹介元Aの紹介用ページ" in page.inner_text("h1"))
     check("店が3つ並ぶ", page.locator(".shop").count() == 3)
+    check("説明は最初は閉じている", page.locator("details.about li").first.is_hidden())
+    page.click("details.about summary")
+    check("タップで説明が開く", page.locator("details.about li").first.is_visible())
+    page.click("details.about summary")
     page.screenshot(path=str(out / "1_referrer.png"), full_page=True)
 
     page.locator(".shop", has_text="見本の店B").click()
