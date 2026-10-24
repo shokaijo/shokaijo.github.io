@@ -95,6 +95,7 @@ with sync_playwright() as p:
     check("受け取った人の入力欄はない", page.locator("#nick").count() == 0)
     check("受け取った直後は「お店で」の案内", page.locator("#before").is_visible() and page.locator("#visit-card").is_hidden())
     check("「行ってきました」はたたんである", page.locator("#visit-btn").is_hidden())
+    check("シールを読むと何が起きるかを説明", "「行ってきました」を押せます" in page.inner_text("#before") and "紹介してくれた紹介元Aへのお礼" in page.inner_text("#before"))
     check("お店の案内（営業時間）が出る", page.locator("#facts").is_visible())
     page.screenshot(path=str(out / "3_letter_before.png"), full_page=True)
     page.goto(link)
