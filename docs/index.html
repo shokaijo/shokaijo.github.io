@@ -20,15 +20,28 @@
   <div id="app" class="hidden">
     <p class="eyebrow">紹介状を送る</p>
     <h1><span id="ref-name"></span>の紹介用ページ</h1>
-    <p class="muted">紹介したいお店を選んで、LINEなどで送ってください。受け取った人が開くと、その人だけの紹介状ができます。</p>
+    <p class="muted">紹介したいお店と、送る相手の呼び名を入れて、LINEなどで送ってください。名前を知っている相手にだけ送れます。</p>
 
     <section class="card">
       <h2>1. 紹介するお店</h2>
       <div id="shops" class="shop-list" role="group" aria-label="紹介するお店"></div>
     </section>
 
+    <section id="to" class="card hidden">
+      <h2>2. 送る相手</h2>
+      <label class="field" for="nick">呼び名（<span id="name-max">8</span>文字まで）</label>
+      <div class="name-row">
+        <input id="nick" type="text" inputmode="text" autocomplete="off" placeholder="例：まっ、ケン、まっちゃんたち">
+      </div>
+      <div id="hons" class="chips" role="radiogroup" aria-label="敬称"></div>
+      <p class="preview" id="preview" aria-live="polite"></p>
+      <p class="err" id="name-err" role="alert"></p>
+      <button id="make" class="btn primary" type="button" disabled>紹介状をつくる</button>
+      <p class="muted">ふだん呼んでいる名前で構いません。紹介状の宛名になり、誰が行ったかを見分けるのに使います。来店のあと、しばらくして消します。</p>
+    </section>
+
     <section id="send" class="card hidden">
-      <h2>2. 送る</h2>
+      <h2>3. 送る</h2>
       <p class="muted" id="send-lead"></p>
       <a id="line" class="btn line" href="#" target="_blank" rel="noopener">LINEで送る</a>
       <button id="share" class="btn hidden" type="button">ほかのアプリで送る</button>
@@ -38,6 +51,7 @@
         <div id="qr" class="qr" aria-label="紹介状のQRコード"></div>
         <p class="muted" style="text-align:center">相手のスマホのカメラで読んでもらってください。</p>
       </div>
+      <button id="again" class="btn" type="button">別の人にも送る</button>
     </section>
 
     <details class="card about">
@@ -66,9 +80,9 @@
 
       <h3>送ったあとの流れ</h3>
       <ol>
-        <li>受け取った人がリンクを開くと、その人だけの紹介状ができます（<span class="days">30</span>日間有効）</li>
-        <li>お店に着いたら、店内のシールをスマホのカメラで読むか、紹介状の画面から「行ってきました」を押してもらいます</li>
-        <li>紹介状は1回使うと終わりです。お店の手間はシールを置いておくだけで、費用はかかりません</li>
+        <li>宛名を入れてつくると、その人専用の紹介状ができます（<span class="days">30</span>日間有効）。転送されても、使えるのは一度だけです</li>
+        <li>受け取った人は、お会計のときかお店を出たあとに、店内のシールを読んで「行ってきました」を押します</li>
+        <li>お店の手間はシールを置いておくだけで、費用はかかりません</li>
       </ol>
     </details>
 
@@ -88,29 +102,56 @@
 (function () {
   var S = window.Shokaijo;
   var refId = S.param('r');
-  var state = { name: '', shareId: '', days: 30, shop: null };
+  var state = { name: '', days: 30, nameMax: 8, shop: null, letter: null, busy: false };
+
+  function $(id) { return document.getElementById(id); }
 
   function show(id) {
-    ['loading', 'error', 'app'].forEach(function (x) {
-      document.getElementById(x).classList.toggle('hidden', x !== id);
-    });
+    ['loading', 'error', 'app'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
   }
 
   function fail(err) {
-    document.getElementById('error-text').textContent = S.message(err);
+    $('error-text').textContent = S.message(err);
     show('error');
   }
 
-  function letterUrl(shopId) {
+  function count(s) { return Array.from(s).length; }
+  function nick() { return $('nick').value.replace(/\s+/g, ''); }
+  function hon() {
+    var c = document.querySelector('input[name="hon"]:checked');
+    return c ? c.value : 'さん';
+  }
+  function fullName(n, h) { return n + (h && h !== 'なし' ? h : ''); }
+
+  function letterUrl(id) {
     var u = new URL('letter.html', location.href);
     // openExternalBrowser=1：LINEで開いてもふつうのブラウザで開く。お店のシールを読んだときに同じ紹介状が見つかるように
-    u.search = '?k=' + encodeURIComponent(state.shareId) + '&s=' + encodeURIComponent(shopId) + '&openExternalBrowser=1';
+    u.search = '?id=' + encodeURIComponent(id) + '&openExternalBrowser=1';
     return u.toString();
   }
 
-  function messageText(shop, url) {
-    return state.name + 'から、' + shop.name + 'への紹介状です。\n' +
-      '開くと、あなた専用の紹介状ができます（' + state.days + '日間有効）。\n' + url;
+  function messageText(l) {
+    return fullName(l.nickname, l.honorific) + 'へ\n' +
+      l.shop.name + 'への紹介状です（' + S.jpDate(l.expires) + 'まで）。\n' + letterUrl(l.id);
+  }
+
+  function hideSend() {
+    state.letter = null;
+    $('send').classList.add('hidden');
+  }
+
+  function canMake() {
+    var n = nick();
+    return !!n && count(n) <= state.nameMax && !!state.shop && !state.busy && !state.letter;
+  }
+
+  function updateName() {
+    var n = nick();
+    var over = count(n) > state.nameMax;
+    $('name-err').textContent = over ? state.nameMax + '文字までにしてください（いま' + count(n) + '文字）' : '';
+    $('preview').innerHTML = n ? '宛名：<b>' + S.esc(fullName(n, hon())) + 'へ</b>' : '';
+    hideSend();               // 宛名や店を変えたら、つくった紹介状は送る欄から外す（つくり直す）
+    $('make').disabled = !canMake();
   }
 
   function selectShop(shop, btn) {
@@ -118,30 +159,45 @@
     Array.prototype.forEach.call(document.querySelectorAll('.shop'), function (b) {
       b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
     });
-    var url = letterUrl(shop.id);
-    var text = messageText(shop, url);
-    document.getElementById('send-lead').textContent = shop.name + 'への紹介状を送ります。';
-    document.getElementById('line').href = S.lineShareUrl(text);
-    document.getElementById('qr').innerHTML = S.qrSvg(url);
-    document.getElementById('qr-box').classList.add('hidden');
-    document.getElementById('show-qr').setAttribute('aria-expanded', 'false');
-    var send = document.getElementById('send');
-    send.classList.remove('hidden');
-    send.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('to').classList.remove('hidden');
+    updateName();
+    $('to').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showSend(l) {
+    state.letter = l;
+    var url = letterUrl(l.id);
+    $('send-lead').textContent = fullName(l.nickname, l.honorific) + 'への、' + l.shop.name + 'の紹介状ができました。この人だけに送ってください。';
+    $('line').href = S.lineShareUrl(messageText(l));
+    $('qr').innerHTML = S.qrSvg(url);
+    $('qr-box').classList.add('hidden');
+    $('show-qr').setAttribute('aria-expanded', 'false');
+    $('send').classList.remove('hidden');
+    $('send').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function render(data) {
     state.name = data.name;
     state.days = data.expiryDays || 30;
-    state.shareId = data.shareId;
+    state.nameMax = data.nameMax || 8;
+    $('name-max').textContent = state.nameMax;
     Array.prototype.forEach.call(document.querySelectorAll('.days'), function (el) { el.textContent = state.days; });
-    document.getElementById('ref-name').textContent = data.name;
-    document.getElementById('ref-name-2').textContent = data.name;
-    var box = document.getElementById('shops');
+    $('ref-name').textContent = data.name;
+    $('ref-name-2').textContent = data.name;
+
+    var hons = $('hons');
+    hons.innerHTML = '';
+    (data.honorifics || ['さん', 'ちゃん', 'くん', 'なし']).forEach(function (h, i) {
+      var l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="radio" name="hon" value="' + S.esc(h) + '"' + (i === 0 ? ' checked' : '') + '><span>' + S.esc(h) + '</span>';
+      l.querySelector('input').addEventListener('change', updateName);
+      hons.appendChild(l);
+    });
+
+    var box = $('shops');
     box.innerHTML = '';
-    if (!data.shops.length) {
-      box.innerHTML = '<p class="muted">いま紹介できるお店はありません。</p>';
-    }
+    if (!data.shops.length) box.innerHTML = '<p class="muted">いま紹介できるお店はありません。</p>';
     data.shops.forEach(function (shop) {
       var b = document.createElement('button');
       b.type = 'button';
@@ -155,26 +211,54 @@
     show('app');
   }
 
-  document.getElementById('copy').addEventListener('click', function () {
-    if (!state.shop) return;
-    S.copyText(letterUrl(state.shop.id))
+  $('nick').addEventListener('input', updateName);
+
+  $('make').addEventListener('click', function () {
+    if (!canMake()) return;
+    var req = { shop: state.shop.id, nickname: nick(), honorific: hon() };
+    state.busy = true;
+    $('make').disabled = true;
+    $('name-err').textContent = '';
+    S.post({ action: 'issue', r: refId, s: req.shop, nickname: req.nickname, honorific: req.honorific })
+      .then(function (l) {
+        state.busy = false;
+        // 通信中に宛名や店が変わっていたら、古い結果は出さない
+        if (state.shop && state.shop.id === req.shop && nick() === req.nickname && hon() === req.honorific) showSend(l);
+      })
+      .catch(function (err) {
+        state.busy = false;
+        $('name-err').textContent = S.message(err);
+      })
+      .then(function () { $('make').disabled = !canMake(); });
+  });
+
+  $('again').addEventListener('click', function () {
+    $('nick').value = '';
+    updateName();
+    $('to').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('nick').focus();
+  });
+
+  $('copy').addEventListener('click', function () {
+    if (!state.letter) return;
+    S.copyText(letterUrl(state.letter.id))
       .then(function () { S.toast('リンクをコピーしました'); })
       .catch(function () { S.toast('コピーできませんでした'); });
   });
 
   if (navigator.share) {
-    var shareBtn = document.getElementById('share');
+    var shareBtn = $('share');
     shareBtn.classList.remove('hidden');
     shareBtn.addEventListener('click', function () {
-      if (!state.shop) return;
-      var url = letterUrl(state.shop.id);
-      navigator.share({ title: '紹介状', text: state.name + 'から、' + state.shop.name + 'への紹介状です。', url: url })
+      if (!state.letter) return;
+      var l = state.letter;
+      navigator.share({ title: '紹介状', text: fullName(l.nickname, l.honorific) + 'へ ' + l.shop.name + 'への紹介状です。', url: letterUrl(l.id) })
         .catch(function () { /* 閉じただけ */ });
     });
   }
 
-  document.getElementById('show-qr').addEventListener('click', function () {
-    var box = document.getElementById('qr-box');
+  $('show-qr').addEventListener('click', function () {
+    var box = $('qr-box');
     var open = box.classList.toggle('hidden') === false;
     this.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) box.scrollIntoView({ behavior: 'smooth', block: 'center' });

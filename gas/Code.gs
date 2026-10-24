@@ -23,13 +23,13 @@ var HEAD = {
   SHOPS: ['店ID', '店名', 'エリア', '営業時間', '定休日', '地図の検索語', 'お店の確認番号', '有効'],
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
-            '呼ばれたい名前', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
+            '宛名', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
             'ひとこと', '記録の方法']
 };
 
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
 var HONORIFICS = ['さん', 'ちゃん', 'くん', 'なし'];
-var NAME_MAX = 4;
+var NAME_MAX = 8;   // 宛名の文字数（「まっちゃんたち」のようなグループ宛ても入る長さ）
 // 「行ってきました」に添えられる言葉。前向きなものだけを置く（自由記述は受け付けない）
 var WORDS = ['ありがとう', '楽しかった', 'また行きたい'];
 var TZ = 'Asia/Tokyo';
@@ -55,8 +55,7 @@ function doPost(e) {
     return respond_(function () { throw userError_('bad_request'); });
   }
   return respond_(function () {
-    if (body.action === 'issue') return withLock_(function () { return issueLetter_(body.k, body.s); });
-    if (body.action === 'name') return withLock_(function () { return saveName_(body.id, body.nickname, body.honorific); });
+    if (body.action === 'issue') return withLock_(function () { return issueLetter_(body.r, body.s, body.nickname, body.honorific); });
     if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words); });
     throw userError_('unknown_action');
   });
@@ -107,7 +106,7 @@ function getReferrer_(refId) {
   var shops = readTable_(SHEET.SHOPS, HEAD.SHOPS, true)
     .filter(function (s) { return isTrue_(s['有効']) && s['店ID'] && String(s['店ID']) !== ref.ownShopId; })
     .map(publicShop_);
-  return { name: ref.name, shareId: ref.shareId, shops: shops, expiryDays: settingNumber_('有効期限（日）', 30) };
+  return { name: ref.name, shops: shops, expiryDays: settingNumber_('有効期限（日）', 30), nameMax: NAME_MAX, honorifics: HONORIFICS };
 }
 
 /** 受け取った人の画面：紹介状の中身 */
@@ -121,14 +120,23 @@ function getLetter_(letterId) {
 /* 書き込み                                                            */
 /* ------------------------------------------------------------------ */
 
-/** 受け取った人がリンクを開いたとき：紹介状を1枚つくる */
-function issueLetter_(shareId, shopId) {
-  var ref = findReferrer_('共有ID', shareId);
+/**
+ * 紹介元が、宛名を入れて紹介状を1枚つくる。宛名は必須。
+ * 名前を知っている相手にしか送れないことで、紹介状が顔見知りの間だけで回るようにする。
+ * できた紹介状のリンクは1人に1枚。転送されても使えるのは一度だけ。
+ */
+function issueLetter_(refId, shopId, nickname, honorific) {
+  var ref = findReferrer_('紹介ID', refId);
   if (!ref) throw userError_('referrer_not_found');
   if (!ref.active) throw userError_('referrer_stopped');
   if (ref.ownShopId && String(shopId) === ref.ownShopId) throw userError_('own_shop');
   var shop = findShop_(shopId);
   if (!shop || !isTrue_(shop['有効'])) throw userError_('shop_not_found');
+
+  var name = String(nickname || '').replace(/\s+/g, '');
+  if (!name) throw userError_('name_required');
+  if (Array.from(name).length > NAME_MAX) throw userError_('name_too_long');
+  var hon = HONORIFICS.indexOf(honorific) >= 0 ? honorific : 'さん';
 
   var now = new Date();
   var expires = addDays_(now, settingNumber_('有効期限（日）', 30));
@@ -141,32 +149,15 @@ function issueLetter_(shareId, shopId) {
   row['行き先'] = shop['店名'];
   row['作成日時'] = now;
   row['期限'] = expires;
-  row['呼ばれたい名前'] = '';
-  row['敬称'] = '';
+  row['宛名'] = asText_(name);
+  row['敬称'] = hon;
   row['状態'] = STATUS.UNUSED;
   row['使用日時'] = '';
   row['誤入力の回数'] = 0;
   row['呼び名を消した日時'] = '';
   appendRow_(SHEET.LETTERS, HEAD.LETTERS, row);
-  return { id: id };
-}
-
-/** 呼ばれたい名前を保存（任意。未使用のあいだだけ変えられる） */
-function saveName_(letterId, nickname, honorific) {
-  var hit = findLetter_(letterId);
-  if (!hit) throw userError_('letter_not_found');
-  var state = effectiveStatus_(hit.row);
-  if (state !== STATUS.UNUSED) throw userError_('letter_' + statusCode_(state));
-
-  var name = String(nickname || '').replace(/\s+/g, '');
-  if (Array.from(name).length > NAME_MAX) throw userError_('name_too_long');
-  var hon = HONORIFICS.indexOf(honorific) >= 0 ? honorific : 'さん';
-  if (!name) hon = '';
-
-  setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, { '呼ばれたい名前': asText_(name), '敬称': hon });
-  hit.row['呼ばれたい名前'] = name;
-  hit.row['敬称'] = hon;
-  return publicLetter_(hit.row);
+  row['宛名'] = name;
+  return publicLetter_(row);
 }
 
 /**
@@ -217,14 +208,14 @@ function purgeNamesLocked_() {
   var count = 0;
   for (var i = 1; i < values.length; i++) {
     var r = values[i];
-    if (!r[col['呼ばれたい名前']]) continue;
+    if (!r[col['宛名']]) continue;
     var base = null;
     if (r[col['状態']] === STATUS.USED && r[col['使用日時']]) base = toDate_(r[col['使用日時']]);
     else if (r[col['期限']]) base = toDate_(r[col['期限']]);
     if (!base) continue;
     var ended = r[col['状態']] === STATUS.USED || r[col['状態']] === STATUS.STOPPED || endOfDay_(base) < now;
     if (ended && addDays_(base, keepDays) < now) {
-      sh.getRange(i + 1, col['呼ばれたい名前'] + 1).setValue('');
+      sh.getRange(i + 1, col['宛名'] + 1).setValue('');
       sh.getRange(i + 1, col['敬称'] + 1).setValue('');
       sh.getRange(i + 1, col['呼び名を消した日時'] + 1).setValue(now);
       count++;
@@ -310,7 +301,7 @@ function addReferrer(name, kind, ownShopId) {
   var id = newId_('R');
   var row = {};
   row['紹介ID'] = id;
-  row['共有ID'] = newId_('K');
+  row['共有ID'] = '';   // 使っていない（以前の仕組みの名残り。列の位置を保つために残す）
   row['呼び名'] = name;
   row['種類'] = kind;
   row['有効'] = true;
@@ -367,7 +358,7 @@ function publicLetter_(row) {
     shop: shop ? publicShop_(shop) : { id: row['行き先の店ID'], name: row['行き先'] },
     expires: formatDate_(toDate_(row['期限'])),
     status: statusCode_(effectiveStatus_(row)),
-    nickname: row['呼ばれたい名前'] || '',
+    nickname: row['宛名'] || '',
     honorific: row['敬称'] || '',
     usedAt: row['使用日時'] ? formatDateTime_(toDate_(row['使用日時'])) : '',
     words: row['ひとこと'] ? String(row['ひとこと']).split('、') : [],

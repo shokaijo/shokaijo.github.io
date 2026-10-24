@@ -10,7 +10,7 @@
 </head>
 <body>
 <main class="wrap">
-  <div id="loading" class="loading">紹介状を用意しています…</div>
+  <div id="loading" class="loading">紹介状を開いています…</div>
 
   <div id="error" class="hidden">
     <p class="eyebrow">紹介状</p>
@@ -18,13 +18,14 @@
   </div>
 
   <div id="app" class="hidden">
-    <p class="eyebrow">紹介状</p>
+    <p class="eyebrow">紹介状 by banzai</p>
 
-    <!-- 紹介状の本体 -->
-    <section class="card letter" aria-labelledby="to">
+    <!-- 紹介状の本体（どの時点でも出す） -->
+    <section class="card letter" aria-labelledby="shop-name">
+      <p class="addressee serif" id="addressee"></p>
       <p class="from"><span id="from"></span>から</p>
-      <h1 id="to" class="to"></h1>
-      <dl class="facts">
+      <h1 class="to"><span id="shop-name"></span><small> への紹介状</small></h1>
+      <dl class="facts" id="facts">
         <dt>営業時間</dt><dd id="hours"></dd>
         <dt>定休日</dt><dd id="closed"></dd>
         <dt>場所</dt><dd><a id="map" href="#" target="_blank" rel="noopener">地図で見る</a></dd>
@@ -32,72 +33,62 @@
       <span class="expiry"><span id="expires"></span>まで有効</span>
     </section>
 
-    <!-- 使用済み -->
+    <!-- 1. 受け取った直後：読むだけ -->
+    <div id="before" class="hidden">
+      <section class="card">
+        <h2>行く日まで、なくさないように</h2>
+        <a id="line-self" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
+      </section>
+
+      <section class="card">
+        <h2>お店で</h2>
+        <p>お会計のときか、お店を出たあとに、店内の「紹介状 by banzai」のシールをスマホのカメラで読んでください。</p>
+        <details class="fallback">
+          <summary>シールが見つからないときは</summary>
+          <div id="fallback-slot"></div>
+        </details>
+      </section>
+    </div>
+
+    <!-- 2. 帰り際：シールから開いたとき -->
+    <section id="visit-card" class="card visit hidden">
+      <h2 id="visit-title"></h2>
+      <div id="visit-slot"></div>
+    </section>
+
+    <!-- 「行ってきました」の部品（1か2のどちらかに差し込む） -->
+    <div id="visit-form">
+      <p class="muted">よければ、ひとこと選んでください（選ばなくてもかまいません）。</p>
+      <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
+      <p class="err" id="visit-err" role="alert"></p>
+      <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
+      <p class="muted">選んだ言葉は、紹介してくれた人や行き先のお店に伝えることがあります。</p>
+    </div>
+
+    <!-- 3. 押したあと -->
     <section id="used" class="card stamp hidden" aria-live="polite">
-      <div class="seal">ようこそ</div>
+      <div class="seal">御礼</div>
       <p class="greet serif" id="used-name"></p>
-      <p class="serif" style="font-size:20px">いらっしゃいませ</p>
       <p id="used-words" class="used-words hidden"></p>
-      <p class="muted">「行ってきました」を受け取りました。<br>この紹介状は使用済みです（<span id="used-at"></span>）。</p>
+      <p class="muted">「行ってきました」を受け取りました（<span id="used-at"></span>）。</p>
     </section>
 
     <!-- 期限切れ・停止 -->
     <section id="closed-state" class="card hidden">
       <p id="closed-text"></p>
     </section>
-
-    <!-- 未使用のときだけ出す -->
-    <div id="unused">
-      <section class="card">
-        <h2>呼び名を教えてください</h2>
-        <p class="muted">入れなくてもかまいません。本名でなくてかまいません。</p>
-        <label class="field" for="nick">呼び名（4文字まで）</label>
-        <div class="name-row">
-          <input id="nick" type="text" inputmode="text" autocomplete="off" placeholder="例：まっ、ケン" aria-describedby="nick-help">
-        </div>
-        <div class="chips" role="radiogroup" aria-label="敬称">
-          <label class="chip"><input type="radio" name="hon" value="さん" checked><span>さん</span></label>
-          <label class="chip"><input type="radio" name="hon" value="ちゃん"><span>ちゃん</span></label>
-          <label class="chip"><input type="radio" name="hon" value="くん"><span>くん</span></label>
-          <label class="chip"><input type="radio" name="hon" value="なし"><span>なし</span></label>
-        </div>
-        <p class="preview" id="preview" aria-live="polite"></p>
-        <p class="err" id="name-err" role="alert"></p>
-        <button id="save" class="btn primary" type="button">この呼び名にする</button>
-        <p id="nick-help" class="muted">紹介してくれた人に、誰が行ったかを伝えるために使います。お店で画面を見せれば、その名前で呼んでもらえることもあります。来店のあと、しばらくして消します。</p>
-      </section>
-
-      <section class="card">
-        <h2>来店の日まで、なくさないように</h2>
-        <a id="line-self" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
-        <p class="muted">お店では、店内の「紹介状 by banzai」のシールをスマホのカメラで読むと、この紹介状が開きます。</p>
-      </section>
-
-      <section id="visit" class="card visit">
-        <h2>お店に着いたら</h2>
-        <p>「行ってきました」を押してください。紹介してくれた人へのお礼になります。</p>
-        <p class="muted">よければ、ひとこと選んでください（選ばなくてもかまいません）。</p>
-        <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
-        <p class="err" id="visit-err" role="alert"></p>
-        <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
-        <p class="muted">選んだ言葉は、紹介してくれた人や行き先のお店に伝えることがあります。</p>
-      </section>
-    </div>
   </div>
 
   <p class="foot">紹介状は試験運用中です</p>
 </main>
-<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="config.js"></script>
 <script src="common.js"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
-  var NAME_MAX = 4;
   var letter = null;
   var at = S.param('at');          // お店のシールから来たときの店ID
-  var scrolledToVisit = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -110,8 +101,6 @@
     show('error');
   }
 
-  function count(s) { return Array.from(s).length; }
-
   function fullName(nick, hon) {
     if (!nick) return '';
     return nick + (hon && hon !== 'なし' ? hon : '');
@@ -123,86 +112,6 @@
     u.search = '?id=' + encodeURIComponent(id) + (external ? '&openExternalBrowser=1' : '');
     return u.toString();
   }
-
-  function honValue() {
-    var c = document.querySelector('input[name="hon"]:checked');
-    return c ? c.value : 'さん';
-  }
-
-  function updatePreview() {
-    var nick = $('nick').value.replace(/\s+/g, '');
-    var over = count(nick) > NAME_MAX;
-    $('name-err').textContent = over ? '4文字までにしてください（いま' + count(nick) + '文字）' : '';
-    $('save').disabled = over;
-    $('preview').innerHTML = nick
-      ? '<b>' + S.esc(fullName(nick, honValue())) + '</b> として記録します'
-      : '';
-  }
-
-  function render(d) {
-    letter = d;
-    S.rememberLetter(d.id, d.shop.id);
-    $('from').textContent = d.from;
-    $('to').innerHTML = S.esc(d.shop.name) + '<small> への紹介状</small>';
-    $('hours').textContent = d.shop.hours || '—';
-    $('closed').textContent = d.shop.closed || '—';
-    $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
-    $('expires').textContent = S.jpDate(d.expires);
-    document.title = d.shop.name + 'への紹介状';
-
-    var unused = d.status === 'unused';
-    $('unused').classList.toggle('hidden', !unused);
-    $('used').classList.toggle('hidden', d.status !== 'used');
-    $('closed-state').classList.toggle('hidden', d.status !== 'expired' && d.status !== 'stopped');
-
-    if (d.status === 'used') {
-      var n = fullName(d.nickname, d.honorific);
-      $('used-name').textContent = n;
-      $('used-name').classList.toggle('hidden', !n);
-      $('used-at').textContent = d.usedAt;
-      var w = (d.words || []).join('・');
-      $('used-words').textContent = w ? '「' + w + '」' : '';
-      $('used-words').classList.toggle('hidden', !w);
-    }
-    if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は期限が切れています。またの紹介をお待ちください。';
-    if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
-
-    if (unused) {
-      if (document.activeElement !== $('nick')) $('nick').value = d.nickname || '';
-      var hon = d.honorific || 'さん';
-      Array.prototype.forEach.call(document.querySelectorAll('input[name="hon"]'), function (r) { r.checked = r.value === hon; });
-      $('save').textContent = d.nickname ? '呼び名を変える' : 'この呼び名にする';
-      updatePreview();
-      renderWords(d.wordChoices);
-      if (at && !scrolledToVisit) {
-        scrolledToVisit = true;
-        setTimeout(function () { $('visit').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
-      }
-      var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id, true);
-      $('line-self').href = S.lineShareUrl(text);
-    }
-    show('app');
-  }
-
-  function load(id) {
-    return S.get({ action: 'letter', id: id }).then(render);
-  }
-
-  $('nick').addEventListener('input', updatePreview);
-  Array.prototype.forEach.call(document.querySelectorAll('input[name="hon"]'), function (r) {
-    r.addEventListener('change', updatePreview);
-  });
-
-  $('save').addEventListener('click', function () {
-    var btn = this;
-    var nick = $('nick').value.replace(/\s+/g, '');
-    if (count(nick) > NAME_MAX) return;
-    btn.disabled = true;
-    S.post({ action: 'name', id: letter.id, nickname: nick, honorific: honValue() })
-      .then(function (d) { render(d); S.toast(nick ? '呼び名を保存しました' : '呼び名を消しました'); })
-      .catch(function (err) { $('name-err').textContent = S.message(err); })
-      .then(function () { btn.disabled = false; updatePreview(); });
-  });
 
   function pickedWords() {
     return Array.prototype.map.call(document.querySelectorAll('input[name="word"]:checked'), function (c) { return c.value; });
@@ -221,6 +130,64 @@
     });
   }
 
+  function render(d) {
+    letter = d;
+    S.rememberLetter(d.id, d.shop.id);
+    var name = fullName(d.nickname, d.honorific);
+
+    $('addressee').textContent = name ? name + 'へ' : '';
+    $('addressee').classList.toggle('hidden', !name);
+    $('from').textContent = d.from;
+    $('shop-name').textContent = d.shop.name;
+    $('hours').textContent = d.shop.hours || '—';
+    $('closed').textContent = d.shop.closed || '—';
+    $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
+    $('expires').textContent = S.jpDate(d.expires);
+    document.title = d.shop.name + 'への紹介状';
+
+    var unused = d.status === 'unused';
+    var atShop = unused && !!at;
+
+    // 1. 受け取った直後 / 2. 帰り際 / 3. 押したあと を出し分ける
+    $('before').classList.toggle('hidden', !unused || atShop);
+    $('visit-card').classList.toggle('hidden', !atShop);
+    $('used').classList.toggle('hidden', d.status !== 'used');
+    $('closed-state').classList.toggle('hidden', d.status !== 'expired' && d.status !== 'stopped');
+    // 帰り際とそのあとは、お店の案内（営業時間など）はもう要らない
+    $('facts').classList.toggle('hidden', atShop || d.status === 'used');
+
+    var form = $('visit-form');
+    if (unused) {
+      renderWords(d.wordChoices);
+      if (atShop) {
+        $('visit-title').textContent = (name ? name + '、' : '') + '楽しんでいただけましたか';
+        $('visit-slot').appendChild(form);
+      } else {
+        $('fallback-slot').appendChild(form);
+        var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id, true);
+        $('line-self').href = S.lineShareUrl(text);
+      }
+      form.classList.remove('hidden');
+    } else {
+      form.classList.add('hidden');
+    }
+
+    if (d.status === 'used') {
+      $('used-name').textContent = (name ? name + '、' : '') + 'ありがとうございました';
+      $('used-at').textContent = d.usedAt;
+      var w = (d.words || []).join('・');
+      $('used-words').textContent = w ? '「' + w + '」' : '';
+      $('used-words').classList.toggle('hidden', !w);
+    }
+    if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は期限が切れています。またの紹介をお待ちください。';
+    if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
+    show('app');
+  }
+
+  function load(id) {
+    return S.get({ action: 'letter', id: id }).then(render);
+  }
+
   $('visit-btn').addEventListener('click', function () {
     var btn = this;
     btn.disabled = true;
@@ -234,37 +201,13 @@
       .then(function () { btn.disabled = false; });
   });
 
-  // 入口：?id= ならその紹介状、?k=&s= なら紹介状を作る（同じ端末で開き直したら作り直さない）
   var id = S.param('id');
-  var k = S.param('k');
-  var s = S.param('s');
-
-  function openWithId(letterId) {
-    if (history.replaceState) history.replaceState(null, '', selfUrl(letterId));
-    return load(letterId);
+  if (!id) {
+    // 以前の形のリンク（?k=…&s=…）は、もう紹介状をつくらない
+    fail(new Error(S.param('k') ? 'old_link' : 'letter_not_found'));
+    return;
   }
-
-  if (id) {
-    load(id).catch(fail);
-  } else if (k && s) {
-    var key = 'shokaijo:' + k + ':' + s;
-    var saved = S.storeGet(key);
-    // 使用済み・期限切れでも同じ紹介状を見せる（同じ人に2枚目を作らない）
-    var start = saved
-      ? load(saved).then(function () {
-          if (history.replaceState) history.replaceState(null, '', selfUrl(saved));
-        })
-      : Promise.reject(new Error('reissue'));
-    start.catch(function (err) {
-      if (err.message !== 'reissue' && err.message !== 'letter_not_found') throw err;
-      return S.post({ action: 'issue', k: k, s: s }).then(function (res) {
-        S.storeSet(key, res.id);
-        return openWithId(res.id);
-      });
-    }).catch(fail);
-  } else {
-    fail(new Error('letter_not_found'));
-  }
+  load(id).catch(fail);
 })();
 </script>
 </body>
