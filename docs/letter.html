@@ -35,6 +35,11 @@
 
     <!-- 1. 受け取った直後：読むだけ -->
     <div id="before" class="hidden">
+      <section class="card tip">
+        <h2>お店に入るとき</h2>
+        <p>この画面をお店の人に見せてください。<span id="from-3"></span>からの紹介だとすぐに伝わり、話が早くなります。初めてのお店でも、紹介してくれた人の話から会話を始められます。</p>
+      </section>
+
       <section class="card">
         <h2>行く日まで、なくさないように</h2>
         <a id="line-self" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
@@ -43,7 +48,7 @@
       <section class="card">
         <h2>お店に行ったら</h2>
         <p>お会計のときか、お店を出たあとに、店内にある「紹介状 by banzai」のシールをスマホのカメラで読んでください。この紹介状が開いて、「行ってきました」を押せます。</p>
-        <p class="muted">押すと、紹介してくれた<span id="from-2"></span>へのお礼として、紹介されたお店に行ったことが記録されます。お店の人に画面を見せたり、名前や連絡先を入れたりする必要はありません。押すかどうかも自由です。</p>
+        <p class="muted">押すと、紹介してくれた<span id="from-2"></span>へのお礼として、紹介されたお店に行ったことが記録されます。記録のために画面を見せたり、名前や連絡先を入れたりする必要はありません。押すかどうかも自由です。</p>
         <details class="fallback">
           <summary>シールが見つからないときは</summary>
           <div id="fallback-slot"></div>
@@ -140,6 +145,7 @@
     $('addressee').classList.toggle('hidden', !name);
     $('from').textContent = d.from;
     $('from-2').textContent = d.from;
+    $('from-3').textContent = d.from;
     $('shop-name').textContent = d.shop.name;
     $('hours').textContent = d.shop.hours || '—';
     $('closed').textContent = d.shop.closed || '—';
