@@ -5,6 +5,7 @@
     referrer_stopped: 'このリンクは、いまは使えません。',
     shop_not_found: 'このお店は、いまは紹介状を受け付けていません。',
     own_shop: '自分のお店への紹介状は作れません。',
+    wrong_shop: 'このシールは、紹介状の行き先とは別のお店のものです。',
     letter_not_found: 'この紹介状は見つかりませんでした。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
@@ -107,6 +108,18 @@
     try { window.localStorage.setItem(key, value); } catch (e) { /* 使えなくても動く */ }
   }
 
+  // このスマホで開いた紹介状を覚えておく（お店のシールから探すため）
+  var LETTERS_KEY = 'shokaijo:letters';
+  function rememberedLetters() {
+    try { return JSON.parse(storeGet(LETTERS_KEY) || '[]') || []; } catch (e) { return []; }
+  }
+  function rememberLetter(id, shopId) {
+    if (!id) return;
+    var list = rememberedLetters().filter(function (x) { return x.id !== id; });
+    list.unshift({ id: id, shop: shopId || '', at: Date.now() });
+    storeSet(LETTERS_KEY, JSON.stringify(list.slice(0, 20)));
+  }
+
   function qrSvg(text) {
     var qr = window.qrcode(0, 'M');
     qr.addData(text);
@@ -126,6 +139,7 @@
   window.Shokaijo = {
     get: get, post: post, message: message, param: param, esc: esc, jpDate: jpDate,
     mapUrl: mapUrl, lineShareUrl: lineShareUrl, copyText: copyText,
-    storeGet: storeGet, storeSet: storeSet, qrSvg: qrSvg, toast: toast
+    storeGet: storeGet, storeSet: storeSet, qrSvg: qrSvg, toast: toast,
+    rememberedLetters: rememberedLetters, rememberLetter: rememberLetter
   };
 })();

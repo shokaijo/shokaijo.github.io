@@ -110,39 +110,59 @@ test('呼び名：4文字まで保存でき、5文字は断る', () => {
   assert.strictEqual(blank.data.honorific, '', '空欄なら敬称も空');
 });
 
-test('店の確認番号が違うと断り、5回で止まる', () => {
-  const env = fresh();
-  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
-  const id = issue(env, r, 'shop-b').data.id;
-  for (let i = 1; i <= 4; i++) {
-    assert.deepStrictEqual(env.post({ action: 'redeem', id, code: '0000' }), { ok: false, error: 'wrong_code' });
-  }
-  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: '0000' }), { ok: false, error: 'letter_stopped' });
-  const right = env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) });
-  assert.deepStrictEqual(right, { ok: false, error: 'letter_stopped' });
-});
-
-test('正しい確認番号で使用済みになり、2回目は使えない', () => {
+test('行ってきました：使用済みになり、2回目は押せない', () => {
   const env = fresh();
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   env.post({ action: 'name', id, nickname: 'ケン', honorific: 'さん' });
-  const used = env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) });
-  assert.strictEqual(used.data.status, 'used');
-  assert.strictEqual(used.data.nickname, 'ケン');
-  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) }), { ok: false, error: 'letter_used' });
+  const res = env.post({ action: 'visit', id, at: 'shop-b', words: ['楽しかった', 'また行きたい'] });
+  assert.strictEqual(res.data.status, 'used');
+  assert.strictEqual(res.data.nickname, 'ケン');
+  assert.deepStrictEqual(res.data.words, ['楽しかった', 'また行きたい']);
+  const row = letterRow(env, id);
+  assert.strictEqual(row['ひとこと'], '楽しかった、また行きたい');
+  assert.strictEqual(row['記録の方法'], 'シール');
+  assert.ok(row['使用日時']);
+  assert.deepStrictEqual(env.post({ action: 'visit', id }), { ok: false, error: 'letter_used' });
   assert.deepStrictEqual(env.post({ action: 'name', id, nickname: 'ほか', honorific: 'さん' }), { ok: false, error: 'letter_used' });
 });
 
-test('別の店の確認番号では使えない', () => {
+test('行ってきました：言葉は選ばなくてもよく、用意した言葉以外は残さない', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const a = issue(env, r, 'shop-b').data.id;
+  assert.deepStrictEqual(env.post({ action: 'visit', id: a }).data.words, []);
+  assert.strictEqual(letterRow(env, a)['記録の方法'], '紹介状の画面');
+  const b = issue(env, r, 'shop-b').data.id;
+  const res = env.post({ action: 'visit', id: b, words: ['最悪だった', 'ありがとう', 'ありがとう', '=H2'] });
+  assert.deepStrictEqual(res.data.words, ['ありがとう']);
+  assert.strictEqual(letterRow(env, b)['ひとこと'], 'ありがとう');
+  assert.deepStrictEqual(res.data.wordChoices, ['ありがとう', '楽しかった', 'また行きたい']);
+});
+
+test('行ってきました：ほかの店のシールからは押せない', () => {
   const env = fresh();
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
-  const codeYoin = String(shopCode(env, 'shop-a'));
-  const codeWig = String(shopCode(env, 'shop-b'));
-  if (codeYoin !== codeWig) {
-    assert.deepStrictEqual(env.post({ action: 'redeem', id, code: codeYoin }), { ok: false, error: 'wrong_code' });
-  }
+  assert.deepStrictEqual(env.post({ action: 'visit', id, at: 'shop-c' }), { ok: false, error: 'wrong_shop' });
+  assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'unused');
+});
+
+test('古い確認番号の操作は受け付けない', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const id = issue(env, r, 'shop-b').data.id;
+  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: '1234' }), { ok: false, error: 'unknown_action' });
+});
+
+test('初期設定をやり直すと、増えた列の見出しが揃う', () => {
+  const env = fresh();
+  const head = env.sheets['紹介状'].data[0];
+  assert.strictEqual(head[13], 'ひとこと');
+  assert.strictEqual(head[14], '記録の方法');
+  env.sheets['紹介状'].data[0] = head.slice(0, 13);
+  env.sandbox.setup();
+  assert.strictEqual(env.sheets['紹介状'].data[0][14], '記録の方法');
 });
 
 test('期限の日は1日中使え、翌日から期限切れ', () => {
@@ -154,7 +174,7 @@ test('期限の日は1日中使え、翌日から期限切れ', () => {
   assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'unused');
   setLetter(env, id, '期限', new Date(now.getTime() - 86400000)); // 昨日が期限
   assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'expired');
-  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) }), { ok: false, error: 'letter_expired' });
+  assert.deepStrictEqual(env.post({ action: 'visit', id }), { ok: false, error: 'letter_expired' });
 });
 
 test('紹介元を止めると、新しい紹介状も未使用の紹介状も使えない', () => {
@@ -223,33 +243,6 @@ test('紹介状のリンクの共有IDでは、紹介元のページは開けな
   assert.notStrictEqual(k, r);
   assert.deepStrictEqual(env.get({ action: 'referrer', r: k }), { ok: false, error: 'referrer_not_found' });
   assert.deepStrictEqual(env.post({ action: 'issue', k: r, s: 'shop-b' }), { ok: false, error: 'referrer_not_found' });
-});
-
-test('店ごとの誤入力が重なると、その店はしばらく受け付けない', () => {
-  const env = fresh();
-  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
-  const wrong = String(shopCode(env, 'shop-b')) === '1000' ? '1001' : '1000';
-  let last;
-  for (let i = 0; i < 15; i++) {
-    const id = issue(env, r, 'shop-b').data.id;
-    last = env.post({ action: 'redeem', id, code: wrong });
-  }
-  assert.deepStrictEqual(last, { ok: false, error: 'wrong_code' });
-  const id = issue(env, r, 'shop-b').data.id;
-  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: String(shopCode(env, 'shop-b')) }), { ok: false, error: 'too_many_tries' });
-  // ほかの店には影響しない
-  const id2 = issue(env, r, 'shop-a').data.id;
-  assert.strictEqual(env.post({ action: 'redeem', id: id2, code: String(shopCode(env, 'shop-a')) }).data.status, 'used');
-});
-
-test('店の確認番号が空なら、紹介状を減らさずに知らせる', () => {
-  const env = fresh();
-  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
-  const d = env.sheets['店'].data;
-  d.find((row) => row[0] === 'shop-b')[d[0].indexOf('お店の確認番号')] = '';
-  const id = issue(env, r, 'shop-b').data.id;
-  assert.deepStrictEqual(env.post({ action: 'redeem', id, code: '1234' }), { ok: false, error: 'shop_not_ready' });
-  assert.strictEqual(letterRow(env, id)['誤入力の回数'], 0);
 });
 
 test('式に見える呼び名は、文字として保存する', () => {

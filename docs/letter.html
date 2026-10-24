@@ -37,7 +37,8 @@
       <div class="seal">ようこそ</div>
       <p class="greet serif" id="used-name"></p>
       <p class="serif" style="font-size:20px">いらっしゃいませ</p>
-      <p class="muted">ご来店ありがとうございます。<br>この紹介状は使用済みです（<span id="used-at"></span>）。</p>
+      <p id="used-words" class="used-words hidden"></p>
+      <p class="muted">「行ってきました」を受け取りました。<br>この紹介状は使用済みです（<span id="used-at"></span>）。</p>
     </section>
 
     <!-- 期限切れ・停止 -->
@@ -48,7 +49,7 @@
     <!-- 未使用のときだけ出す -->
     <div id="unused">
       <section class="card">
-        <h2>お店でなんと呼ばれたいですか</h2>
+        <h2>呼び名を教えてください</h2>
         <p class="muted">入れなくてもかまいません。本名でなくてかまいません。</p>
         <label class="field" for="nick">呼び名（4文字まで）</label>
         <div class="name-row">
@@ -63,25 +64,23 @@
         <p class="preview" id="preview" aria-live="polite"></p>
         <p class="err" id="name-err" role="alert"></p>
         <button id="save" class="btn primary" type="button">この呼び名にする</button>
-        <p id="nick-help" class="muted">初めてのご来店のときにお呼びするために使います。来店のあと、しばらくして消します。</p>
+        <p id="nick-help" class="muted">紹介してくれた人に、誰が行ったかを伝えるために使います。お店で画面を見せれば、その名前で呼んでもらえることもあります。来店のあと、しばらくして消します。</p>
       </section>
 
       <section class="card">
         <h2>来店の日まで、なくさないように</h2>
         <a id="line-self" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
-        <p class="muted">来店の日は、このページを開いてお店で見せてください（スクリーンショットでは使用済みにできません）。</p>
+        <p class="muted">お店では、店内の「紹介状 by banzai」のシールをスマホのカメラで読むと、この紹介状が開きます。</p>
       </section>
 
-      <section class="card">
-        <h2>お店で</h2>
-        <p>この画面をお店の方に見せてください。</p>
-        <button id="staff" class="btn" type="button" aria-expanded="false">お店の方へ（確認番号の入力）</button>
-        <div id="staff-box" class="hidden">
-          <label class="field" for="code">お店の確認番号（4桁）</label>
-          <input id="code" class="code-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-          <p class="err" id="code-err" role="alert"></p>
-          <button id="redeem" class="btn primary" type="button">使用済みにする</button>
-        </div>
+      <section id="visit" class="card visit">
+        <h2>お店に着いたら</h2>
+        <p>「行ってきました」を押してください。紹介してくれた人へのお礼になります。</p>
+        <p class="muted">よければ、ひとこと選んでください（選ばなくてもかまいません）。</p>
+        <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
+        <p class="err" id="visit-err" role="alert"></p>
+        <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
+        <p class="muted">選んだ言葉は、紹介してくれた人や行き先のお店に伝えることがあります。</p>
       </section>
     </div>
   </div>
@@ -97,6 +96,8 @@
   var S = window.Shokaijo;
   var NAME_MAX = 4;
   var letter = null;
+  var at = S.param('at');          // お店のシールから来たときの店ID
+  var scrolledToVisit = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -116,9 +117,10 @@
     return nick + (hon && hon !== 'なし' ? hon : '');
   }
 
-  function selfUrl(id) {
+  // external=true のときは、LINEで開いてもふつうのブラウザで開くよう印を付ける
+  function selfUrl(id, external) {
     var u = new URL('letter.html', location.href);
-    u.search = '?id=' + encodeURIComponent(id);
+    u.search = '?id=' + encodeURIComponent(id) + (external ? '&openExternalBrowser=1' : '');
     return u.toString();
   }
 
@@ -133,12 +135,13 @@
     $('name-err').textContent = over ? '4文字までにしてください（いま' + count(nick) + '文字）' : '';
     $('save').disabled = over;
     $('preview').innerHTML = nick
-      ? 'お店では <b>' + S.esc(fullName(nick, honValue())) + '</b> とお呼びします'
+      ? '<b>' + S.esc(fullName(nick, honValue())) + '</b> として記録します'
       : '';
   }
 
   function render(d) {
     letter = d;
+    S.rememberLetter(d.id, d.shop.id);
     $('from').textContent = d.from;
     $('to').innerHTML = S.esc(d.shop.name) + '<small> への紹介状</small>';
     $('hours').textContent = d.shop.hours || '—';
@@ -157,6 +160,9 @@
       $('used-name').textContent = n;
       $('used-name').classList.toggle('hidden', !n);
       $('used-at').textContent = d.usedAt;
+      var w = (d.words || []).join('・');
+      $('used-words').textContent = w ? '「' + w + '」' : '';
+      $('used-words').classList.toggle('hidden', !w);
     }
     if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は期限が切れています。またの紹介をお待ちください。';
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
@@ -167,7 +173,12 @@
       Array.prototype.forEach.call(document.querySelectorAll('input[name="hon"]'), function (r) { r.checked = r.value === hon; });
       $('save').textContent = d.nickname ? '呼び名を変える' : 'この呼び名にする';
       updatePreview();
-      var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id);
+      renderWords(d.wordChoices);
+      if (at && !scrolledToVisit) {
+        scrolledToVisit = true;
+        setTimeout(function () { $('visit').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+      }
+      var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id, true);
       $('line-self').href = S.lineShareUrl(text);
     }
     show('app');
@@ -193,23 +204,32 @@
       .then(function () { btn.disabled = false; updatePreview(); });
   });
 
-  $('staff').addEventListener('click', function () {
-    var open = $('staff-box').classList.toggle('hidden') === false;
-    this.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) $('code').focus();
-  });
+  function pickedWords() {
+    return Array.prototype.map.call(document.querySelectorAll('input[name="word"]:checked'), function (c) { return c.value; });
+  }
 
-  $('redeem').addEventListener('click', function () {
+  function renderWords(choices) {
+    var box = $('words');
+    var keep = pickedWords();
+    box.innerHTML = '';
+    (choices || []).forEach(function (w) {
+      var l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.esc(w) + '</span>';
+      l.querySelector('input').checked = keep.indexOf(w) >= 0;
+      box.appendChild(l);
+    });
+  }
+
+  $('visit-btn').addEventListener('click', function () {
     var btn = this;
-    var code = $('code').value.trim();
-    if (!/^\d{4}$/.test(code)) { $('code-err').textContent = '4桁の数字を入れてください。'; return; }
     btn.disabled = true;
-    $('code-err').textContent = '';
-    S.post({ action: 'redeem', id: letter.id, code: code })
+    $('visit-err').textContent = '';
+    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords() })
       .then(function (d) { render(d); window.scrollTo({ top: 0, behavior: 'smooth' }); })
       .catch(function (err) {
-        $('code-err').textContent = S.message(err);
-        if (err.message !== 'wrong_code') load(letter.id).catch(function () {});
+        $('visit-err').textContent = S.message(err);
+        if (err.message !== 'wrong_shop' && err.message !== 'network') load(letter.id).catch(function () {});
       })
       .then(function () { btn.disabled = false; });
   });

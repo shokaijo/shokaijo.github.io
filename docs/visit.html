@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>紹介状</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+  <div id="loading" class="loading">紹介状を探しています…</div>
+
+  <div id="none" class="hidden">
+    <p class="eyebrow">紹介状 by banzai</p>
+    <h1>紹介状で来られた方へ</h1>
+    <section class="card">
+      <p id="none-lead">このスマホでは、このお店への紹介状が見つかりませんでした。</p>
+      <p><b>LINEなどで受け取った紹介状のリンクを開き</b>、「お店に着いたら」の「行ってきました」を押してください。紹介してくれた人へのお礼になります。</p>
+      <p class="muted" id="other" hidden>ほかのお店への紹介状は、このスマホにあります。行き先のお店を確かめてください。</p>
+    </section>
+  </div>
+
+  <p class="foot">紹介状は試験運用中です</p>
+</main>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  var S = window.Shokaijo;
+  var shop = S.param('s');
+
+  var netError = false;
+
+  function showNone(hasOther) {
+    if (netError) document.getElementById('none-lead').textContent = '通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度シールを読んでください。';
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('none').classList.remove('hidden');
+    document.getElementById('other').hidden = !hasOther;
+  }
+
+  function go(id) {
+    var u = new URL('letter.html', location.href);
+    u.search = '?id=' + encodeURIComponent(id) + '&at=' + encodeURIComponent(shop);
+    location.replace(u.toString());
+  }
+
+  var all = S.rememberedLetters();
+  var here = all.filter(function (x) { return x.shop === shop; });
+  if (!shop || !here.length) {
+    showNone(all.length > 0);
+    return;
+  }
+
+  // 新しい順に見て、まだ使っていない紹介状があればそれを開く。なければ一番新しいもの（使用済みの表示）
+  var i = 0;
+  var firstFound = null;
+  (function next() {
+    if (i >= here.length) {
+      if (firstFound) go(firstFound); else showNone(all.length > here.length);
+      return;
+    }
+    var id = here[i++].id;
+    S.get({ action: 'letter', id: id }).then(function (d) {
+      if (!firstFound) firstFound = id;
+      if (d.status === 'unused') go(id); else next();
+    }).catch(function (err) {
+      if (err && err.message === 'network') netError = true;
+      next();
+    });
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>紹介状のシール（印刷用）</title>
+<style>
+  /* 使い方：sticker.html?s=店ID,店ID,... を開いて A4 で印刷する。1店につき1ページ */
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: #26211c; }
+  body {
+    font-family: "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    padding: 14mm 14mm 0;
+    page-break-after: always;
+    break-after: page;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .meta { font-size: 8pt; color: #9a9086; margin: 0 0 6mm; }
+  .label { font-size: 9pt; color: #6e655b; margin: 0 0 3mm; }
+  .row { display: flex; flex-wrap: wrap; gap: 6mm; margin-bottom: 8mm; }
+
+  .serif { font-family: "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif; }
+
+  /* 名刺サイズ（91×55mm）：置いておく用 */
+  .card {
+    width: 91mm; height: 55mm;
+    border: 0.2mm dashed #c9bda9;
+    border-radius: 2mm;
+    display: flex; align-items: center; gap: 5mm;
+    padding: 5mm 6mm;
+    background: #fffbf3;
+  }
+  .card .qr { width: 34mm; height: 34mm; flex: 0 0 auto; }
+  .card .name { font-size: 22pt; line-height: 1.1; margin: 0; font-weight: 600; }
+  .card .by { font-size: 8pt; letter-spacing: 0.12em; color: #6e655b; margin: 1.5mm 0 4mm; }
+  .card .how { font-size: 7.5pt; line-height: 1.6; margin: 0; }
+
+  /* 丸シール（直径40mm）：レジ横やメニューに貼る用 */
+  .round {
+    width: 40mm; height: 40mm;
+    border: 0.2mm dashed #c9bda9;
+    border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #fffbf3;
+  }
+  .round .qr { width: 21mm; height: 21mm; }
+  .round .name { font-size: 9pt; font-weight: 600; margin: 0.8mm 0 0; line-height: 1; }
+  .round .by { font-size: 5pt; letter-spacing: 0.12em; color: #6e655b; margin: 0.6mm 0 0; }
+
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .note { font-size: 8pt; color: #9a9086; line-height: 1.7; margin-top: 4mm; }
+</style>
+</head>
+<body>
+<div id="pages"></div>
+<script src="vendor/qrcode.js"></script>
+<script>
+(function () {
+  var ids = (new URLSearchParams(location.search).get('s') || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+  // 手元で開いたときも、公開先のURLでQRを作る
+  var base = new URL('visit.html', location.protocol === 'https:' ? location.href : 'https://shokaijo.github.io/');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function qr(url) {
+    var q = window.qrcode(0, 'M');
+    q.addData(url);
+    q.make();
+    return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  }
+
+  function card(svg) {
+    return '<div class="card"><div class="qr">' + svg + '</div><div>' +
+      '<p class="name serif">紹介状</p><p class="by">by banzai</p>' +
+      '<p class="how">紹介状をお持ちの方は、<br>スマホのカメラで<br>読み取ってください。</p></div></div>';
+  }
+
+  function round(svg) {
+    return '<div class="round"><div class="qr">' + svg + '</div>' +
+      '<p class="name serif">紹介状</p><p class="by">by banzai</p></div>';
+  }
+
+  var html = ids.map(function (id) {
+    var url = base.toString() + '?s=' + encodeURIComponent(id);
+    var svg = qr(url);
+    return '<section class="page">' +
+      '<p class="meta">店ID：' + esc(id) + '　読み取り先：' + esc(url) + '（この行は切り取って捨ててください）</p>' +
+      '<p class="label">名刺サイズ（91×55mm）</p><div class="row">' + card(svg) + card(svg) + '</div>' +
+      '<p class="label">丸シール（直径40mm）</p><div class="row">' +
+      round(svg) + round(svg) + round(svg) + round(svg) + '</div>' +
+      '<p class="note">点線で切り取ってください。どの店のシールかはQRの中に入っているので、表には店名を出していません。</p>' +
+      '</section>';
+  }).join('');
+  document.getElementById('pages').innerHTML = html || '<p style="padding:16px">?s=店ID をつけて開いてください。</p>';
+})();
+</script>
+</body>
+</html>

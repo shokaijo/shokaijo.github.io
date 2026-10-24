@@ -23,14 +23,15 @@ var HEAD = {
   SHOPS: ['店ID', '店名', 'エリア', '営業時間', '定休日', '地図の検索語', 'お店の確認番号', '有効'],
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
-            '呼ばれたい名前', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時']
+            '呼ばれたい名前', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
+            'ひとこと', '記録の方法']
 };
 
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
 var HONORIFICS = ['さん', 'ちゃん', 'くん', 'なし'];
 var NAME_MAX = 4;
-var MAX_WRONG_CODE = 5;          // 紹介状1枚あたり
-var MAX_WRONG_CODE_SHOP = 15;    // 店ごと、6時間あたり（総当たり対策）
+// 「行ってきました」に添えられる言葉。前向きなものだけを置く（自由記述は受け付けない）
+var WORDS = ['ありがとう', '楽しかった', 'また行きたい'];
 var TZ = 'Asia/Tokyo';
 
 /* ------------------------------------------------------------------ */
@@ -56,7 +57,7 @@ function doPost(e) {
   return respond_(function () {
     if (body.action === 'issue') return withLock_(function () { return issueLetter_(body.k, body.s); });
     if (body.action === 'name') return withLock_(function () { return saveName_(body.id, body.nickname, body.honorific); });
-    if (body.action === 'redeem') return withLock_(function () { return redeem_(body.id, body.code); });
+    if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words); });
     throw userError_('unknown_action');
   });
 }
@@ -168,35 +169,33 @@ function saveName_(letterId, nickname, honorific) {
   return publicLetter_(hit.row);
 }
 
-/** 店で「使用済み」にする。お店の確認番号が合えば使用済み */
-function redeem_(letterId, code) {
+/**
+ * お客さんが「行ってきました」を押したとき。使用済みにして、選んだ言葉を残す。
+ * at はお店のシールから来たときの店ID（紹介状の画面から押したときは空）。
+ * 特典がないので来店を厳しくは確かめない。シールの店と行き先が違うときだけ止める。
+ */
+function visit_(letterId, atShopId, words) {
   var hit = findLetter_(letterId);
   if (!hit) throw userError_('letter_not_found');
   var state = effectiveStatus_(hit.row);
   if (state !== STATUS.UNUSED) throw userError_('letter_' + statusCode_(state));
 
-  var shop = findShop_(hit.row['行き先の店ID']);
-  var expected = shop ? String(shop['お店の確認番号']).trim() : '';
-  if (!/^\d{4}$/.test(expected)) throw userError_('shop_not_ready');
+  var at = String(atShopId || '').trim();
+  if (at && at !== String(hit.row['行き先の店ID'])) throw userError_('wrong_shop');
 
-  var cache = CacheService.getScriptCache();
-  var shopKey = 'wrong:' + shop['店ID'];
-  var shopWrong = Number(cache.get(shopKey) || 0);
-  if (shopWrong >= MAX_WRONG_CODE_SHOP) throw userError_('too_many_tries');
-
-  if (String(code || '').trim() !== expected) {
-    cache.put(shopKey, String(shopWrong + 1), 21600);
-    var wrong = Number(hit.row['誤入力の回数'] || 0) + 1;
-    var patch = { '誤入力の回数': wrong };
-    if (wrong >= MAX_WRONG_CODE) patch['状態'] = STATUS.STOPPED;
-    setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, patch);
-    throw userError_(wrong >= MAX_WRONG_CODE ? 'letter_stopped' : 'wrong_code');
-  }
+  var picked = (Array.isArray(words) ? words : []).filter(function (w, i, a) {
+    return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
+  });
 
   var now = new Date();
-  setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, { '状態': STATUS.USED, '使用日時': now });
-  hit.row['状態'] = STATUS.USED;
-  hit.row['使用日時'] = now;
+  var patch = {
+    '状態': STATUS.USED,
+    '使用日時': now,
+    'ひとこと': picked.join('、'),
+    '記録の方法': at ? 'シール' : '紹介状の画面'
+  };
+  setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, patch);
+  Object.keys(patch).forEach(function (k) { hit.row[k] = patch[k]; });
   return publicLetter_(hit.row);
 }
 
@@ -273,6 +272,7 @@ function setup() {
     ]);
   }
   sheet_(SHEET.LETTERS).getRange('H:H').setNumberFormat('@');
+  sheet_(SHEET.LETTERS).getRange('D:D').setNumberFormat('@');
   sheet_(SHEET.LETTERS).getRange('F:G').setNumberFormat('yyyy/mm/dd hh:mm');
   sheet_(SHEET.LETTERS).getRange('K:K').setNumberFormat('yyyy/mm/dd hh:mm');
   sheet_(SHEET.LETTERS).getRange('M:M').setNumberFormat('yyyy/mm/dd hh:mm');
@@ -336,10 +336,11 @@ function buildSummary_() {
   sh.getRange('D2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, COUNTIFS('紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"使用済み\")))");
   sh.getRange('E2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, COUNTIFS('紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"未使用\", '紹介状'!G2:G, \"<\"&TODAY())))");
   sh.getRange('F2').setFormula("=ARRAYFORMULA(IF(A2:A=\"\",, IFERROR(ROUND(AVERAGEIFS('紹介状'!K2:K, '紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"使用済み\") - AVERAGEIFS('紹介状'!F2:F, '紹介状'!B2:B, A2:A, '紹介状'!J2:J, \"使用済み\"), 1), \"\")))");
-  sh.getRange('H1:J1').setValues([['行き先の店', '紹介状の数', '来店']]);
+  sh.getRange('H1:K1').setValues([['行き先の店', '紹介状の数', '来店', '「また行きたい」']]);
   sh.getRange('H2').setFormula("=IFERROR(FILTER('店'!B2:B, '店'!B2:B<>\"\"), \"\")");
   sh.getRange('I2').setFormula("=ARRAYFORMULA(IF(H2:H=\"\",, COUNTIFS('紹介状'!E2:E, H2:H)))");
   sh.getRange('J2').setFormula("=ARRAYFORMULA(IF(H2:H=\"\",, COUNTIFS('紹介状'!E2:E, H2:H, '紹介状'!J2:J, \"使用済み\")))");
+  sh.getRange('K2').setFormula("=ARRAYFORMULA(IF(H2:H=\"\",, COUNTIFS('紹介状'!E2:E, H2:H, '紹介状'!N2:N, \"*また行きたい*\")))");
   sh.setFrozenRows(1);
 }
 
@@ -368,7 +369,9 @@ function publicLetter_(row) {
     status: statusCode_(effectiveStatus_(row)),
     nickname: row['呼ばれたい名前'] || '',
     honorific: row['敬称'] || '',
-    usedAt: row['使用日時'] ? formatDateTime_(toDate_(row['使用日時'])) : ''
+    usedAt: row['使用日時'] ? formatDateTime_(toDate_(row['使用日時'])) : '',
+    words: row['ひとこと'] ? String(row['ひとこと']).split('、') : [],
+    wordChoices: WORDS
   };
 }
 
@@ -403,7 +406,8 @@ function sheet_(name) {
 function ensureSheet_(name, head) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(name) || ss.insertSheet(name);
-  if (head.length && sh.getLastRow() === 0) {
+  if (head.length) {
+    // 列が増えたときも見出しが揃うよう、毎回1行目を書き直す（データには触れない）
     sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
     sh.setFrozenRows(1);
   }

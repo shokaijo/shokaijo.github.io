@@ -56,6 +56,7 @@ with sync_playwright() as p:
     letter_link = text.strip().splitlines()[-1]
     check("送るリンクは共有IDと店入り", "k=K" in letter_link and "s=shop-b" in letter_link)
     check("送るリンクに紹介元のIDは入らない", ref not in letter_link)
+    check("送るリンクはふつうのブラウザで開く印つき", "openExternalBrowser=1" in letter_link)
     page.click("#show-qr")
     page.wait_for_selector("#qr svg")
     page.screenshot(path=str(out / "2_referrer_qr.png"), full_page=True)
@@ -89,17 +90,28 @@ with sync_playwright() as p:
     check("呼び名が記録に残る", row[7] == "まっ" and row[8] == "ちゃん")
     page.screenshot(path=str(out / "4_letter_named.png"), full_page=True)
 
-    # お店の方へ：違う番号、正しい番号
-    page.click("#staff")
-    page.fill("#code", "0000" if codes["shop-b"] != "0000" else "1111")
-    page.click("#redeem")
-    page.wait_for_function("document.querySelector('#code-err').textContent.length > 0")
-    check("違う番号ではじかれる", "確認番号が違います" in page.inner_text("#code-err"))
-    page.fill("#code", str(codes["shop-b"]))
-    page.click("#redeem")
+    # お店のシールから開く：ほかの店のシールでは、この紹介状は見つからない
+    page.goto(f"{BASE}/visit.html?s=shop-c")
+    page.wait_for_selector("#none:not(.hidden)")
+    check("ほかの店のシールでは見つからない案内", "見つかりませんでした" in page.inner_text("#none"))
+    check("ほかの店への紹介状があることを伝える", page.locator("#other").is_visible())
+
+    # 行き先の店のシールから開くと、紹介状が開き「行ってきました」へ進む
+    page.goto(f"{BASE}/visit.html?s=shop-b")
+    page.wait_for_url("**/letter.html?id=*")
+    page.wait_for_selector("#app:not(.hidden)")
+    check("シールから同じ紹介状が開く", f"id={letter_id}" in page.url and "at=shop-b" in page.url)
+    check("言葉の選択肢は3つ", page.locator('input[name="word"]').count() == 3)
+    check("確認番号の欄はない", page.locator("#code").count() == 0)
+    page.locator("label.chip", has_text="また行きたい").click()
+    page.screenshot(path=str(out / "4b_visit.png"), full_page=True)
+    page.click("#visit-btn")
     page.wait_for_selector("#used:not(.hidden)")
     check("使用済みで呼び名つきのあいさつ", page.inner_text("#used-name") == "まっちゃん" and "いらっしゃいませ" in page.inner_text("#used"))
+    check("選んだ言葉が出る", "また行きたい" in page.inner_text("#used-words"))
     check("未使用の部品は隠れる", page.locator("#unused").is_hidden())
+    row = [r for r in state()["letters"][1:] if r[0] == letter_id][0]
+    check("記録に言葉と方法が残る", row[13] == "また行きたい" and row[14] == "シール")
     page.screenshot(path=str(out / "5_used.png"), full_page=True)
 
     # 使ったあとに元のリンクを開いても、使用済みのまま（2枚目を作らない）
@@ -117,7 +129,21 @@ with sync_playwright() as p:
     p2.wait_for_selector("#app:not(.hidden)")
     letters = [r for r in state()["letters"][1:] if r[0]]
     check("別の人が開くと2枚目ができる", len(letters) == 2)
-    p2.screenshot(path=str(out / "6_letter_dark.png"), full_page=True)
+    # 紹介状の画面から押す（シールなし）
+    p2.click("#visit-btn")
+    p2.wait_for_selector("#used:not(.hidden)")
+    row = [r for r in state()["letters"][1:] if r[0] != letter_id and r[0]][0]
+    check("画面から押すと、方法は紹介状の画面", row[14] == "紹介状の画面" and row[13] == "")
+    p2.screenshot(path=str(out / "6_used_dark.png"), full_page=True)
+
+    # 紹介状を一度も開いていないスマホでシールを読む
+    ctx3 = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale="ja-JP")
+    p3 = ctx3.new_page()
+    p3.on("pageerror", lambda e: errors.append(str(e)))
+    p3.goto(f"{BASE}/visit.html?s=shop-b")
+    p3.wait_for_selector("#none:not(.hidden)")
+    check("紹介状のないスマホには案内だけ", p3.locator("#other").is_hidden())
+    p3.screenshot(path=str(out / "7_visit_none.png"), full_page=True)
 
     # 知らないリンク
     p2.goto(f"{BASE}/letter.html?id=Lnope")

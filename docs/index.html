@@ -58,17 +58,17 @@
       <ul>
         <li>近くの店のマスターが勧めてくれたお客さんが、そのまま常連になる</li>
         <li>初めてのお客さんとも「あのマスターの紹介なんですね」と話が始められる</li>
-        <li>呼び名が分かっているので、最初の一杯から名前で声をかけられる</li>
+        <li>紹介状で何人来たかを、あとから教えてもらえる</li>
       </ul>
 
       <h3>紹介を受け取った人に</h3>
-      <p>初めてのお店でも、「あのお店からの紹介で来ました」と入りやすくなります。呼び名を伝えておけば、最初から名前で迎えてもらいやすくなります。</p>
+      <p>初めてのお店でも、「あのお店からの紹介で来ました」と入りやすくなります。</p>
 
       <h3>送ったあとの流れ</h3>
       <ol>
         <li>受け取った人がリンクを開くと、その人だけの紹介状ができます（<span class="days">30</span>日間有効）</li>
-        <li>お店で画面を見せると、紹介状のことがお店に伝わります。呼び名を入れていれば、お店はその名前で迎えられます</li>
-        <li>紹介状は1回使うと終わりです。お店の手間は確認番号を入れるだけで、費用はかかりません</li>
+        <li>お店に着いたら、店内のシールをスマホのカメラで読むか、紹介状の画面から「行ってきました」を押してもらいます</li>
+        <li>紹介状は1回使うと終わりです。お店の手間はシールを置いておくだけで、費用はかかりません</li>
       </ol>
     </details>
 
@@ -103,7 +103,8 @@
 
   function letterUrl(shopId) {
     var u = new URL('letter.html', location.href);
-    u.search = '?k=' + encodeURIComponent(state.shareId) + '&s=' + encodeURIComponent(shopId);
+    // openExternalBrowser=1：LINEで開いてもふつうのブラウザで開く。お店のシールを読んだときに同じ紹介状が見つかるように
+    u.search = '?k=' + encodeURIComponent(state.shareId) + '&s=' + encodeURIComponent(shopId) + '&openExternalBrowser=1';
     return u.toString();
   }
 
