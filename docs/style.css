@@ -311,6 +311,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 }
 
 .maplink { margin: 0; font-size: 15px; }
+.enter-tip { margin: 0 4px 20px; font-size: 16px; line-height: 1.85; }
+.howto-body { padding: 14px 18px 8px; border-top: 1px solid var(--line); margin: 0 18px; padding-left: 0; padding-right: 0; }
 
 .letter .addressee { font-size: 20px; margin: 0 0 10px; }
 .used-words { font-size: 16px; color: var(--accent); margin: 0 0 10px; }
