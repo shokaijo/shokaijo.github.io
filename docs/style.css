@@ -533,3 +533,7 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 #issue-box { margin-top: 16px; }
 .greet { word-break: keep-all; overflow-wrap: anywhere; }
 .issue-lead { font-size: 14px; line-height: 1.8; }
+.rename { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.rename summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+.rename .issue { margin-top: 10px; }
+#toast { white-space: nowrap; }

@@ -234,6 +234,11 @@ with sync_playwright() as p:
     check("URLは公開ID", f"c={pub}" in pass_url)
     page.screenshot(path=str(out / "8_card.png"), full_page=True)
     page.click("#keep summary")
+    page.click(".rename summary")
+    page.fill("#pass-name", "まっちゃん")
+    page.click("#pass-issue")
+    page.wait_for_function("document.querySelector('#holder-name').textContent === 'まっちゃん'")
+    check("自分のパスポートでは名前を変えられる", page.inner_text("#holder-name") == "まっちゃん")
     page.screenshot(path=str(out / "8b_card_keep.png"), full_page=True)
 
     # 5. 2枚目：別の人あて。シールなしで紹介状の画面から押す（暗い表示）
@@ -264,7 +269,8 @@ with sync_playwright() as p:
     p2.goto(pass_url)
     p2.wait_for_selector("#app:not(.hidden)")
     check("他人には「見るだけ」", p2.locator("#view-only").is_visible() and p2.locator("#keep").is_hidden() and p2.locator("#issue-box").is_hidden())
-    check("他人にも所持人は見える", p2.inner_text("#holder-name") == "まつもと")
+    check("他人にも名前は見える", p2.inner_text("#holder-name") == "まっちゃん")
+    check("他人には名前を変える欄がない", p2.locator(".rename").count() == 0)
     p2.screenshot(path=str(out / "9_view_only_dark.png"), full_page=True)
     p2_key = p2.evaluate("localStorage.getItem('shokaijo:key')")
     check("他人の鍵は書き換わらない", p2_key and p2_key != key)

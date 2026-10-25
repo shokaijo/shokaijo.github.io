@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>吉祥寺はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025r">
+<link rel="stylesheet" href="style.css?v=20261025s">
 </head>
 <body>
 <main class="wrap">
@@ -45,8 +45,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025r"></script>
-<script src="common.js?v=20261025r"></script>
+<script src="config.js?v=20261025s"></script>
+<script src="common.js?v=20261025s"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -73,7 +73,18 @@
     // 発行済みの自分のパスポートだけ、とっておく案内を出す
     var keep = own && p.issued;
     $('keep').classList.toggle('hidden', !keep);
-    if (keep) { $('keep-body').innerHTML = S.keepBoxHtml(p.id); S.bindKeepBox($('keep-body')); }
+    if (keep) {
+      $('keep-body').innerHTML = S.keepBoxHtml(p.id) +
+        '<details class="rename"><summary>ニックネームを変える</summary><div id="rename-box"></div></details>';
+      S.bindKeepBox($('keep-body'));
+      // 名前を変えられるのは、鍵を持っているこのスマホだけ
+      $('rename-box').innerHTML = S.issueFormHtml('rename');
+      S.bindIssueForm($('rename-box'), p.name, function (r) {
+        draw(r, true);
+        $('keep').open = true;
+        S.toast('ニックネームを変えました');
+      });
+    }
     // 未発行で、スタンプがある：ここで発行できる
     var canIssue = own && !p.issued && stamps.length > 0;
     $('issue-box').classList.toggle('hidden', !canIssue);

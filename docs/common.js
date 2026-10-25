@@ -216,14 +216,16 @@
   }
 
   // 発行の欄。名前を入れて「発行する」を押すと、パスポートが有効になる
-  function issueFormHtml() {
+  function issueFormHtml(mode) {
+    var rename = mode === 'rename';
     return '<div class="issue">' +
+      (rename ? '' :
       '<p class="issue-title serif">吉祥寺はしごパスポートを発行しませんか？</p>' +
-      '<p class="issue-lead">酒場で呼ばれたいニックネームで、自分専用のパスポートを発行できます。紹介状で行ったお店のスタンプがたまっていくので、飲み歩きの記録が残ります。今日のスタンプが、最初の1つになります。</p>' +
+      '<p class="issue-lead">酒場で呼ばれたいニックネームで、自分専用のパスポートを発行できます。紹介状で行ったお店のスタンプがたまっていくので、飲み歩きの記録が残ります。今日のスタンプが、最初の1つになります。</p>') +
       '<label class="field" for="pass-name">ニックネーム（8文字まで・表紙に入ります）</label>' +
       '<div class="name-row"><input id="pass-name" type="text" autocomplete="off" placeholder="例：まっ、ケン"></div>' +
       '<p class="err" id="pass-err" role="alert"></p>' +
-      '<button id="pass-issue" class="btn primary" type="button">発行する</button>' +
+      '<button id="pass-issue" class="btn primary" type="button">' + (rename ? '変える' : '発行する') + '</button>' +
       '</div>';
   }
   function bindIssueForm(root, defaultName, onDone) {
