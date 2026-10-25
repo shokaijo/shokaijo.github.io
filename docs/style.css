@@ -551,3 +551,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .notice.again { margin: 0 0 14px; font-size: 14px; text-align: left; }
 #retry { margin: 14px 0 0; }
 #retry p { margin-bottom: 8px; }
+.keep-own, .keep-show { padding: 12px 0 4px; }
+.keep-show { border-top: 1px solid var(--line); margin-top: 8px; }
+.keep-h { font-weight: 700; font-size: 15px; margin: 0 0 4px; }
+.keep-warn { font-size: 13px; color: var(--accent); margin: 0 0 6px; }
+#switch { margin-top: 8px; }

@@ -179,9 +179,12 @@ with sync_playwright() as p:
     page.fill("#pass-name", "まつもと")
     page.click("#pass-issue")
     page.wait_for_selector("#card-box .keepbox")
-    check("発行したら、とっておく案内", "このリンクが、あなたのパスポートです" in page.inner_text("#card-box") and "なくしたら再発行" in page.inner_text("#card-box"))
+    check("発行したら、とっておく案内", "自分用の鍵つきリンク" in page.inner_text("#card-box") and "見せる用のリンク" in page.inner_text("#card-box") and "人には送らないでください" in page.inner_text("#card-box"))
     keep_href = urllib.parse.unquote(page.get_attribute("#card-box .keep-line", "href"))
-    check("自分用だと分かる文で送る", "（自分用メモ）" in keep_href and pub in keep_href and key not in keep_href)
+    check("自分用は鍵つきリンクで、人に送らないと分かる文", "（自分用・人に送らない）" in keep_href and f"c={pub}" in keep_href and f"#k={key}" in keep_href)
+    show_href = urllib.parse.unquote(page.get_attribute("#card-box .show-line", "href"))
+    check("見せる用には鍵が入らない", pub in show_href and key not in show_href and "見るだけ" in show_href)
+    owner_url = keep_href.strip().splitlines()[-1]
     check("小さな表紙に所持人", "まつもと・スタンプ" in page.inner_text("#card-box .pass-mini"))
     page.screenshot(path=str(out / "5b_issued.png"), full_page=True)
     page.reload()
@@ -291,6 +294,26 @@ with sync_playwright() as p:
     p2.wait_for_selector("#app:not(.hidden)")
     check("他人の自分のパスポートは未発行のまま、発行できる", p2.locator("#issue-box .issue").is_visible() and p2.locator(".stamp-cell:not(.empty)").count() == 1)
 
+    # 5c. 自分用リンク：鍵のないブラウザで開くと、続きから押せるようになる。別のパスポートがあれば聞く
+    p5 = new_ctx(browser)
+    p5.goto(owner_url)
+    p5.wait_for_selector("#app:not(.hidden)")
+    check("自分用リンクで鍵が戻る", p5.evaluate("localStorage.getItem('shokaijo:key')") == key)
+    check("鍵はアドレスバーから消える", "#k=" not in p5.url)
+    check("戻したあとは自分のものとして出る", p5.locator("#view-only").is_hidden() and p5.locator("#keep").is_visible())
+    p2.goto(owner_url)
+    p2.wait_for_selector("#switch:not(.hidden)")
+    check("別のパスポートがあれば、切り替えるか聞く", "切り替えますか" in p2.inner_text("#switch-text"))
+    p2.screenshot(path=str(out / "9b_switch_dark.png"), full_page=True)
+    p2.click("#switch-no")
+    p2.wait_for_selector("#app:not(.hidden)")
+    check("切り替えなければ見るだけ", p2.locator("#view-only").is_visible() and p2.evaluate("localStorage.getItem('shokaijo:key')") == p2_key)
+    p2.goto(owner_url)
+    p2.wait_for_selector("#switch:not(.hidden)")
+    p2.click("#switch-yes")
+    p2.wait_for_selector("#app:not(.hidden)")
+    check("切り替えると自分のものになり、前の鍵は控えに残る", p2.locator("#keep").is_visible() and p2_key in (p2.evaluate("localStorage.getItem('shokaijo:oldkeys')") or ""))
+
     # 6. 転送されたリンクを別のスマホで開いても、使用済みの同じ1枚
     p3 = new_ctx(browser)
     p3.goto(link)
@@ -320,7 +343,7 @@ with sync_playwright() as p:
     p4.wait_for_selector("#error:not(.hidden)")
     check("知らないパスポートはお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
 
-    for pg in (page, p2, p3, p4):
+    for pg in (page, p2, p3, p4, p5):
         check("横スクロールなし", pg.evaluate("document.documentElement.scrollWidth") <= 390)
 
     browser.close()

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025v">
+<link rel="stylesheet" href="style.css?v=20261025w">
 </head>
 <body>
 <main class="wrap">
@@ -103,8 +103,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025v"></script>
-<script src="common.js?v=20261025v"></script>
+<script src="config.js?v=20261025w"></script>
+<script src="common.js?v=20261025w"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -242,7 +242,7 @@
       box.innerHTML = (justIssued ? '<p><b>パスポートを発行しました。</b></p>' : lead) +
         '<a class="pass-mini" href="' + S.esc(S.cardUrl(p.id)) + '">' + S.passMiniHtml(p) + '</a>' +
         (justIssued ? S.keepBoxHtml(p.id) : '') + unsaved;
-      S.bindKeepBox(box);
+      S.bindKeepBox(box, p.id);
     }
     box.classList.remove('hidden');
   }

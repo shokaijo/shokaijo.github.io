@@ -168,8 +168,38 @@
   }
 
   // 自分用に送るときの文。人に送らないよう、自分用だと分かる形にする
+  // 自分用リンク：見るためのURLの # のあとに鍵を付ける。# 以降はサーバーにもリファラにも送られない
+  function ownerUrl(pub) {
+    return cardUrl(pub) + '#k=' + myKey();
+  }
   function keepText(pub) {
-    return '（自分用メモ）吉祥寺はしごパスポートのリンクです。なくしたら再発行になります。\n' + cardUrl(pub);
+    return '（自分用・人に送らない）吉祥寺はしごパスポートの鍵つきリンクです。スマホを替えたり、ブラウザのデータが消えたりしたときは、これを開くと続きから押せます。\n' + ownerUrl(pub);
+  }
+  function showText(pub) {
+    return '吉祥寺はしごパスポートです（見るだけのリンク）。\n' + cardUrl(pub);
+  }
+
+  // 自分用リンクから鍵を受け取る。戻り値：'none'（鍵なし）/ 'same' / 'adopted' / 'conflict'（このブラウザに別の鍵）
+  function keyFromHash() {
+    var m = /[#&]k=(K[0-9a-f]{32})/.exec(location.hash || '');
+    if (!m) return { state: 'none' };
+    var k = m[1];
+    var cur = myKey();
+    if (cur === k) return { state: 'same' };
+    if (!cur) { adoptKey(k); return { state: 'adopted' }; }
+    return { state: 'conflict', key: k };
+  }
+  // 鍵を切り替える。前の鍵は控えとして残す
+  function adoptKey(k) {
+    var cur = myKey();
+    if (cur && cur !== k) {
+      var old = [];
+      try { old = JSON.parse(storeGet('shokaijo:oldkeys') || '[]') || []; } catch (e) { old = []; }
+      if (old.indexOf(cur) < 0) old.unshift(cur);
+      storeSet('shokaijo:oldkeys', JSON.stringify(old.slice(0, 5)));
+    }
+    memKey = k;
+    storeSet(KEY_KEY, k);
   }
 
   // 選べる言葉は決まっているので、台紙ではアイコンで見せる
@@ -257,19 +287,30 @@
   }
 
   // 発行したあとの「とっておく」欄。見るためのリンクを、自分用に送ってもらう
+  // とっておく欄：自分用（鍵つき）と、見せる用（見るだけ）を分けて渡す
   function keepBoxHtml(pub) {
     return '<div class="keepbox">' +
-      '<p><b>このリンクが、あなたのパスポートです。</b>なくしたら再発行になるので、ブックマークするか、LINEのKeepメモに送っておいてください。</p>' +
-      '<a class="btn line keep-line" href="' + esc(lineShareUrl(keepText(pub))) + '" target="_blank" rel="noopener">LINEのKeepメモに送る</a>' +
-      '<button class="btn keep-copy" type="button" data-url="' + esc(cardUrl(pub)) + '">リンクをコピー</button>' +
-      '<p class="muted small">リンクは見るためのものです。友達に見せても、スタンプを押されたり名前を変えられたりすることはありません。スタンプを押せるのは、このスマホのこのブラウザだけです。</p>' +
+      '<div class="keep-own">' +
+      '<p class="keep-h">自分用の鍵つきリンク</p>' +
+      '<p>スマホを替えたり、ブラウザのデータが消えたりしても、このリンクを開けば続きから押せます。LINEのKeepメモに送っておいてください。</p>' +
+      '<a class="btn line keep-line" href="' + esc(lineShareUrl(keepText(pub))) + '" target="_blank" rel="noopener">LINEのKeepメモに送る（自分用）</a>' +
+      '<button class="btn keep-copy" type="button" data-copy="own">自分用リンクをコピー</button>' +
+      '<p class="keep-warn">スタンプを押すための鍵が入っています。人には送らないでください。</p>' +
+      '</div>' +
+      '<div class="keep-show">' +
+      '<p class="keep-h">見せる用のリンク</p>' +
+      '<p>友達やお店の人に見せるときは、こちらを送ってください。見るだけで、スタンプを押されたり名前を変えられたりすることはありません。</p>' +
+      '<a class="btn show-line" href="' + esc(lineShareUrl(showText(pub))) + '" target="_blank" rel="noopener">LINEで見せる</a>' +
+      '<button class="btn keep-copy" type="button" data-copy="show">見せる用リンクをコピー</button>' +
+      '</div>' +
       '</div>';
   }
-  function bindKeepBox(root) {
-    var b = root.querySelector('.keep-copy');
-    if (!b) return;
-    b.addEventListener('click', function () {
-      copyText(b.getAttribute('data-url')).then(function () { toast('リンクをコピーしました'); }, function () { toast('コピーできませんでした'); });
+  function bindKeepBox(root, pub) {
+    Array.prototype.forEach.call(root.querySelectorAll('.keep-copy'), function (b) {
+      b.addEventListener('click', function () {
+        var url = b.getAttribute('data-copy') === 'own' ? ownerUrl(pub) : cardUrl(pub);
+        copyText(url).then(function () { toast('リンクをコピーしました'); }, function () { toast('コピーできませんでした'); });
+      });
     });
   }
 
@@ -306,6 +347,7 @@
     cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml,
     passEmblem: passEmblem, passMiniHtml: passMiniHtml,
     myKey: myKey, ensureKey: ensureKey, keyIsSaved: keyIsSaved, myPass: myPass, keepText: keepText,
+    ownerUrl: ownerUrl, keyFromHash: keyFromHash, adoptKey: adoptKey,
     issueFormHtml: issueFormHtml, bindIssueForm: bindIssueForm, keepBoxHtml: keepBoxHtml, bindKeepBox: bindKeepBox,
     pressedHere: pressedHere, pendingHere: pendingHere
   };

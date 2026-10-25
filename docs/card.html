@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>吉祥寺はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025v">
+<link rel="stylesheet" href="style.css?v=20261025w">
 </head>
 <body>
 <main class="wrap">
@@ -15,6 +15,14 @@
   <div id="error" class="hidden">
     <div class="card"><p id="error-text"></p></div>
   </div>
+
+  <!-- 自分用リンクを開いたが、このブラウザに別のパスポートがあるとき -->
+  <section id="switch" class="card hidden">
+    <p id="switch-text"></p>
+    <button id="switch-yes" class="btn primary" type="button">このリンクのパスポートに切り替える</button>
+    <button id="switch-no" class="btn" type="button">いまのパスポートのままにする</button>
+    <p class="muted small">切り替えても、いまのパスポートのスタンプは消えません。このスマホの中に控えを残します。</p>
+  </section>
 
   <div id="app" class="hidden">
     <section class="pass-cover">
@@ -36,7 +44,7 @@
     <details class="card howto hidden" id="keep">
       <summary>
         <span class="howto-title">このパスポートをとっておく</span>
-        <span class="howto-sub">なくしたら再発行です。ブックマークか、LINEのKeepメモに</span>
+        <span class="howto-sub">自分用の鍵つきリンクがあれば、スマホを替えても続きから押せます</span>
       </summary>
       <div class="howto-body" id="keep-body"></div>
     </details>
@@ -46,8 +54,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025v"></script>
-<script src="common.js?v=20261025v"></script>
+<script src="config.js?v=20261025w"></script>
+<script src="common.js?v=20261025w"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -78,7 +86,7 @@
     if (keep) {
       $('keep-body').innerHTML = S.keepBoxHtml(p.id) +
         '<details class="rename"><summary>ニックネームを変える</summary><div id="rename-box"></div></details>';
-      S.bindKeepBox($('keep-body'));
+      S.bindKeepBox($('keep-body'), p.id);
       // 名前を変えられるのは、鍵を持っているこのスマホだけ
       $('rename-box').innerHTML = S.issueFormHtml('rename');
       S.bindIssueForm($('rename-box'), p.name, function (r) {
@@ -108,6 +116,7 @@
     show('error');
   }
 
+  function load() {
   if (id) {
     // 見るためのURL：だれでも見られる。このスマホの鍵の公開IDと同じなら、自分のもの
     // 鍵があるのに確かめられなかったときは、他人扱いにせず「読み込み直す」を出す
@@ -121,7 +130,37 @@
       draw(p || { stamps: [], issued: false }, !!p);
     }).catch(fail);
   }
+  }
+
+  // 自分用リンク（#k=鍵）から開いたとき：鍵を受け取り、アドレスバーからは消す
+  var h = S.keyFromHash();
+  function dropHash() { history.replaceState(null, '', location.pathname + location.search); }
+  if (h.state === 'conflict') {
+    $('loading').classList.add('hidden');
+    S.myPass().then(function (cur) {
+      var desc = cur && cur.issued ? '「' + cur.name + '」・スタンプ ' + cur.stamps.length + '個' : 'スタンプ ' + (cur ? cur.stamps.length : 0) + '個';
+      if (cur && !cur.issued && !cur.stamps.length) { S.adoptKey(h.key); dropHash(); load(); return; }
+      $('switch-text').textContent = 'このスマホには、別のパスポート（' + desc + '）があります。この自分用リンクのパスポートに切り替えますか？';
+      $('switch').classList.remove('hidden');
+    }).catch(function () {
+      $('switch-text').textContent = 'このスマホには、別のパスポートがあります。この自分用リンクのパスポートに切り替えますか？';
+      $('switch').classList.remove('hidden');
+    });
+    $('switch-yes').addEventListener('click', function () {
+      S.adoptKey(h.key); dropHash(); $('switch').classList.add('hidden'); show('loading'); load();
+    });
+    $('switch-no').addEventListener('click', function () {
+      dropHash(); $('switch').classList.add('hidden'); show('loading'); load();
+    });
+  } else {
+    if (h.state !== 'none') dropHash();
+    if (h.state === 'adopted') S.toast('このブラウザで、続きから押せるようになりました');
+    load();
+  }
+
   $('retry-btn').addEventListener('click', function () { location.reload(); });
+  // 同じページのまま自分用リンクを開いたとき（# だけが変わる）も、読み込み直して鍵を受け取る
+  window.addEventListener('hashchange', function () { if (/k=K/.test(location.hash)) location.reload(); });
 })();
 </script>
 </body>
