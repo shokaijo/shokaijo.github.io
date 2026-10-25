@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025p">
+<link rel="stylesheet" href="style.css?v=20261025r">
 </head>
 <body>
 <main class="wrap">
@@ -102,8 +102,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025p"></script>
-<script src="common.js?v=20261025p"></script>
+<script src="config.js?v=20261025r"></script>
+<script src="common.js?v=20261025r"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -227,7 +227,7 @@
   function renderPassBox(p, justIssued) {
     var box = $('card-box');
     if (!p) { box.classList.add('hidden'); return; }
-    var lead = '<p><b>吉祥寺はしごパスポートに来店スタンプを押しました。</b></p>';
+    var lead = '<p class="muted">来店スタンプを押しました。</p>';
     var unsaved = S.keyIsSaved() ? '' :
       '<p class="notice warn small">このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。</p>';
     if (!p.issued) {

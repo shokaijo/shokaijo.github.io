@@ -9,7 +9,7 @@
     letter_not_found: 'この紹介状は見つかりませんでした。',
     card_not_found: 'このパスポートは見つかりませんでした。リンクが途中で切れていないか確かめてください。',
     bad_key: 'このスマホのパスポートの情報が読めませんでした。ページを開き直して、もう一度お試しください。',
-    pass_name_required: '所持人の名前を入れてください。',
+    pass_name_required: 'ニックネームを入れてください。',
     pass_no_stamp: 'スタンプが押されてから発行できます。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
@@ -208,7 +208,7 @@
     var sub;
     if (!p || !count) sub = 'まだスタンプはありません';
     else if (!p.issued) sub = '未発行・スタンプ ' + count + '個';
-    else sub = '所持人 ' + p.name + '・スタンプ ' + count + '個';
+    else sub = p.name + '・スタンプ ' + count + '個';
     return passEmblem() +
       '<span class="pass-mini-text"><span class="pass-mini-area">吉祥寺</span><span class="pass-mini-title">はしごパスポート</span>' +
       '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
@@ -218,9 +218,9 @@
   // 発行の欄。名前を入れて「発行する」を押すと、パスポートが有効になる
   function issueFormHtml() {
     return '<div class="issue">' +
-      '<p class="issue-title serif">吉祥寺はしごパスポートを発行しましょう</p>' +
-      '<p class="muted small">所持人の名前を入れると、パスポートが有効になります。見せた人に、誰のパスポートか分かるように表紙に入ります。</p>' +
-      '<label class="field" for="pass-name">所持人の名前（8文字まで）</label>' +
+      '<p class="issue-title serif">吉祥寺はしごパスポートを発行しませんか？</p>' +
+      '<p class="issue-lead">酒場で呼ばれたいニックネームで、自分専用のパスポートを発行できます。紹介状で行ったお店のスタンプがたまっていくので、飲み歩きの記録が残ります。今日のスタンプが、最初の1つになります。</p>' +
+      '<label class="field" for="pass-name">ニックネーム（8文字まで・表紙に入ります）</label>' +
       '<div class="name-row"><input id="pass-name" type="text" autocomplete="off" placeholder="例：まっ、ケン"></div>' +
       '<p class="err" id="pass-err" role="alert"></p>' +
       '<button id="pass-issue" class="btn primary" type="button">発行する</button>' +

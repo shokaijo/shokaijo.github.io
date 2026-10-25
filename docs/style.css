@@ -526,9 +526,10 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .view-only { margin: 14px 0 0; font-size: 14px; }
 .view-only { margin-bottom: 16px; }
 .issue { text-align: left; }
-.issue-title { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+.issue-title { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
 .keepbox { text-align: left; margin-top: 12px; }
 .keepbox p { font-size: 14px; }
 .notice.small { font-size: 13px; margin: 8px 0; }
 #issue-box { margin-top: 16px; }
 .greet { word-break: keep-all; overflow-wrap: anywhere; }
+.issue-lead { font-size: 14px; line-height: 1.8; }
