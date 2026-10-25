@@ -436,3 +436,35 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 #before .pass-mini { margin-top: 4px; }
 .pass-area { margin: 0; font-size: 15px; letter-spacing: 0.5em; padding-left: 0.5em; font-weight: 600; }
 .pass-mini-area { font-size: 11px; letter-spacing: 0.3em; opacity: 0.9; font-family: "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif; }
+
+/* 紹介状の券面（搭乗券風） */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.letter.ticket { padding: 0; border-radius: 14px; overflow: hidden; }
+.letter.ticket::before { display: none; }
+.ticket-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 12px 18px; background: var(--pass-bg); color: var(--pass-gold);
+}
+.ticket-brand { font-size: 15px; font-weight: 600; letter-spacing: 0.1em; }
+.ticket-kind { font-size: 9px; letter-spacing: 0.2em; opacity: 0.85; }
+.ticket-body { padding: 16px 18px 18px; }
+.ticket-label { margin: 0; font-size: 10px; letter-spacing: 0.22em; color: var(--muted); }
+.letter.ticket .addressee { font-size: 22px; margin: 0 0 14px; }
+.route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.6fr); align-items: end; gap: 10px; }
+.route-from, .route-to { min-width: 0; }
+.letter.ticket .from { font-size: 15px; color: var(--ink); margin: 0; line-height: 1.35; overflow-wrap: anywhere; }
+.letter.ticket .to { font-size: 24px; line-height: 1.3; margin: 0; padding: 0; border: 0; overflow-wrap: anywhere; }
+.route-arrow { position: relative; width: 28px; height: 2px; background: var(--accent); margin-bottom: 11px; }
+.route-arrow::after {
+  content: ""; position: absolute; right: -1px; top: -4px; width: 8px; height: 8px;
+  border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); transform: rotate(45deg);
+}
+/* ミシン目と半券 */
+.ticket-stub { position: relative; padding: 16px 18px 16px; border-top: 2px dashed var(--line); }
+.ticket-stub::before, .ticket-stub::after {
+  content: ""; position: absolute; top: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--paper);
+}
+.ticket-stub::before { left: -11px; }
+.ticket-stub::after { right: -11px; }
+.letter.ticket .enter-tip { margin-bottom: 10px; }
+.letter.ticket.compact .ticket-stub { display: none; }
