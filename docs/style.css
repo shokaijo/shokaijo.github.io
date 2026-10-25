@@ -273,7 +273,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .letter { box-shadow: 0 1px 0 rgba(60, 40, 20, 0.04), 0 14px 36px rgba(60, 40, 20, 0.14); margin-bottom: 20px; }
 
 /* 行く日まで残しておく */
-.keep { margin: 0 0 20px; text-align: center; }
+.keep { margin: 20px 0 0; text-align: center; }
+.btn.quiet { background: transparent; border-color: var(--line); color: var(--muted); font-size: 15px; min-height: 44px; }
 .keep .btn { margin-bottom: 4px; }
 .keep .muted { font-size: 13px; margin: 0; }
 
@@ -308,12 +309,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
   background: none; border: 0; padding: 4px 0; margin: 2px 0 6px;
   color: var(--accent); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; text-align: left;
 }
-.fallback-box { padding: 12px 0 4px; }
 
 .letter .addressee { font-size: 20px; margin: 0 0 10px; }
-.fallback { margin-top: 8px; }
-.fallback summary { cursor: pointer; color: var(--muted); font-size: 14px; min-height: 32px; }
-.fallback[open] summary { margin-bottom: 8px; }
 .used-words { font-size: 16px; color: var(--accent); margin: 0 0 10px; }
 .visit .chips { margin-top: 4px; }
 

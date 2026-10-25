@@ -35,12 +35,6 @@
 
     <!-- 1. 受け取った直後：読むだけ -->
     <div id="before" class="hidden">
-      <!-- 行く日まで残しておく：見出しのカードはなくし、ボタンだけにする -->
-      <div class="keep">
-        <a id="line-self" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
-        <p class="muted">行く日まで、なくさないように</p>
-      </div>
-
       <!-- お店での使い方：入るときと帰り際をまとめる（最初は閉じておく） -->
       <details class="card howto" id="howto">
         <summary>
@@ -56,11 +50,15 @@
             <h3>お会計のときか、お店を出たあと</h3>
             <p>店内にある「行きつけの紹介状」のシールをスマホのカメラで読んでください。この紹介状が開いて、「行ってきました」を押せます。</p>
             <p class="muted">押すと、紹介してくれた<span id="from-2"></span>へのお礼として、紹介されたお店に行ったことが記録されます。記録のために画面を見せたり、名前や連絡先を入れたりする必要はありません。押すかどうかも自由です。</p>
-            <button id="fallback-toggle" class="linkish" type="button" aria-expanded="false" aria-controls="fallback-slot">シールが見つからないときは、ここから記録できます</button>
-            <div id="fallback-slot" class="fallback-box hidden"></div>
           </li>
         </ol>
       </details>
+
+      <!-- 行く日まで残しておく（控えめに） -->
+      <div class="keep">
+        <a id="line-self" class="btn quiet" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
+        <p class="muted">行く日まで、なくさないように</p>
+      </div>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -69,8 +67,8 @@
       <div id="visit-slot"></div>
     </section>
 
-    <!-- 「行ってきました」の部品（1か2のどちらかに差し込む） -->
-    <div id="visit-form">
+    <!-- 「行ってきました」の部品（シールから開いたときだけ、2に差し込む） -->
+    <div id="visit-form" class="hidden">
       <p class="muted">よければ、ひとこと選んでください（選ばなくてもかまいません）。</p>
       <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
       <p class="err" id="visit-err" role="alert"></p>
@@ -177,12 +175,13 @@
       if (atShop) {
         $('visit-title').textContent = (name ? name + '、' : '') + '楽しんでいただけましたか';
         $('visit-slot').appendChild(form);
+        form.classList.remove('hidden');
       } else {
-        $('fallback-slot').appendChild(form);
+        // 受け取った直後は「行ってきました」を出さない（シールを読んだときだけ）
+        form.classList.add('hidden');
         var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id, true);
         $('line-self').href = S.lineShareUrl(text);
       }
-      form.classList.remove('hidden');
     } else {
       form.classList.add('hidden');
     }
@@ -202,13 +201,6 @@
   function load(id) {
     return S.get({ action: 'letter', id: id }).then(render);
   }
-
-  $('fallback-toggle').addEventListener('click', function () {
-    var box = $('fallback-slot');
-    var open = box.classList.toggle('hidden') === false;
-    this.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
 
   $('visit-btn').addEventListener('click', function () {
     var btn = this;
