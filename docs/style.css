@@ -147,7 +147,7 @@ p { margin: 0 0 12px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .btn.line { background: #06c755; border-color: #06c755; color: #fff; font-weight: 600; }
 .btn.small { min-height: 40px; font-size: 15px; width: auto; display: inline-flex; margin: 0; }
-.btn:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-within {
+.btn:focus-visible, input:focus-visible, select:focus-visible, .chip input:focus-visible + span {
   outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 2px;
 }
@@ -272,11 +272,6 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 /* 紹介状の本体をいちばん目立たせる */
 .letter { box-shadow: 0 1px 0 rgba(60, 40, 20, 0.04), 0 14px 36px rgba(60, 40, 20, 0.14); margin-bottom: 20px; }
 
-/* 行く日まで残しておく */
-.keep { margin: 20px 0 0; text-align: center; }
-.btn.quiet { background: transparent; border-color: var(--line); color: var(--muted); font-size: 15px; min-height: 44px; }
-.keep .btn { margin-bottom: 4px; }
-.keep .muted { font-size: 13px; margin: 0; }
 
 /* お店での使い方（アコーディオン） */
 .howto { padding: 0; box-shadow: none; }
@@ -352,3 +347,6 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
   .howto summary::after { transition: none; }
   .about summary::after { transition: none; }
 }
+
+.muted.small { font-size: 12px; }
+.letter.compact .to { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }

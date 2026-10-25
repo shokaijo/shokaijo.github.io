@@ -35,18 +35,12 @@
       <details class="card howto" id="howto">
         <summary>
           <span class="howto-title">お会計のときに</span>
-          <span class="howto-sub">店内のQRコードを読むと、<span id="from-2"></span>へのお礼になります</span>
+          <span class="howto-sub">店内のQRコードを読むと、<span id="from-2"></span>に「行ってきました」をお知らせします</span>
         </summary>
         <div class="howto-body">
           <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読んでください。「行ってきました」のボタンが出ます。</p>
         </div>
       </details>
-
-      <!-- 行く日まで残しておく（控えめに） -->
-      <div class="keep">
-        <a id="line-self" class="btn quiet" href="#" target="_blank" rel="noopener">LINEで自分に送っておく</a>
-        <p class="muted">行く日まで、なくさないように</p>
-      </div>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -61,7 +55,7 @@
       <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
       <p class="err" id="visit-err" role="alert"></p>
       <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
-      <p class="muted">選んだ言葉は、紹介してくれた人や行き先のお店に伝えることがあります。</p>
+      <p class="muted">選んだ言葉も、一緒に<span class="from-name"></span>にお知らせします。</p>
     </div>
 
     <!-- 3. 押したあと -->
@@ -69,7 +63,8 @@
       <div class="seal">御礼</div>
       <p class="greet serif" id="used-name"></p>
       <p id="used-words" class="used-words hidden"></p>
-      <p class="muted">「行ってきました」を受け取りました（<span id="used-at"></span>）。</p>
+      <p class="muted"><span class="from-name"></span>へ「行ってきました」をお知らせします。これで完了です。お店の人に見せるものはありません。</p>
+      <p class="muted small">受け取った日時：<span id="used-at"></span></p>
     </section>
 
     <!-- 期限切れ・停止 -->
@@ -105,13 +100,6 @@
     return nick + (hon && hon !== 'なし' ? hon : '');
   }
 
-  // external=true のときは、LINEで開いてもふつうのブラウザで開くよう印を付ける
-  function selfUrl(id, external) {
-    var u = new URL('letter.html', location.href);
-    u.search = '?id=' + encodeURIComponent(id) + (external ? '&openExternalBrowser=1' : '');
-    return u.toString();
-  }
-
   function pickedWords() {
     return Array.prototype.map.call(document.querySelectorAll('input[name="word"]:checked'), function (c) { return c.value; });
   }
@@ -139,6 +127,7 @@
     $('from').textContent = d.from;
     $('from-2').textContent = d.from;
     $('from-3').textContent = d.from;
+    Array.prototype.forEach.call(document.querySelectorAll('.from-name'), function (el) { el.textContent = d.from; });
     $('shop-name').textContent = d.shop.name;
     $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
     document.title = d.shop.name + 'への紹介状';
@@ -154,6 +143,8 @@
     $('closed-state').classList.toggle('hidden', d.status !== 'stopped');
     // 帰り際とそのあとは、お店の案内（営業時間など）はもう要らない
     $('facts').classList.toggle('hidden', atShop || d.status === 'used');
+    // 下に何も出さない時点では、区切り線と余白も消す
+    document.querySelector('.letter').classList.toggle('compact', atShop || d.status === 'used');
 
     var form = $('visit-form');
     if (unused) {
@@ -165,8 +156,6 @@
       } else {
         // 受け取った直後は「行ってきました」を出さない（シールを読んだときだけ）
         form.classList.add('hidden');
-        var text = d.shop.name + 'への紹介状\n' + selfUrl(d.id, true);
-        $('line-self').href = S.lineShareUrl(text);
       }
     } else {
       form.classList.add('hidden');
