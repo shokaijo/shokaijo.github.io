@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>紹介状のシール（印刷用）</title>
+<title>行きつけの紹介状 シール（印刷用）</title>
 <style>
   /* 使い方：sticker.html?s=店ID,店ID,... を開いて A4 で印刷する。1店につき1ページ */
   @page { size: A4; margin: 0; }
@@ -39,7 +39,8 @@
     background: #fffbf3;
   }
   .card .qr { width: 34mm; height: 34mm; flex: 0 0 auto; }
-  .card .name { font-size: 22pt; line-height: 1.1; margin: 0; font-weight: 600; }
+  .card .name { font-size: 17pt; line-height: 1.25; margin: 0; font-weight: 600; }
+  .card .name small { display: block; font-size: 11pt; font-weight: 500; }
   .card .by { font-size: 8pt; letter-spacing: 0.12em; color: #6e655b; margin: 1.5mm 0 4mm; }
   .card .how { font-size: 7.5pt; line-height: 1.6; margin: 0; }
 
@@ -52,7 +53,8 @@
     background: #fffbf3;
   }
   .round .qr { width: 21mm; height: 21mm; }
-  .round .name { font-size: 9pt; font-weight: 600; margin: 0.8mm 0 0; line-height: 1; }
+  .round .name { font-size: 8pt; font-weight: 600; margin: 0.8mm 0 0; line-height: 1.15; text-align: center; }
+  .round .name small { display: block; font-size: 6pt; font-weight: 500; }
   .round .by { font-size: 5pt; letter-spacing: 0.12em; color: #6e655b; margin: 0.6mm 0 0; }
 
   .qr svg { width: 100%; height: 100%; display: block; }
@@ -83,13 +85,13 @@
 
   function card(svg) {
     return '<div class="card"><div class="qr">' + svg + '</div><div>' +
-      '<p class="name serif">紹介状</p><p class="by">by banzai</p>' +
+      '<p class="name serif"><small>行きつけの</small>紹介状</p><p class="by">by banzai</p>' +
       '<p class="how">紹介状をお持ちの方は、<br>スマホのカメラで<br>読み取ってください。</p></div></div>';
   }
 
   function round(svg) {
     return '<div class="round"><div class="qr">' + svg + '</div>' +
-      '<p class="name serif">紹介状</p><p class="by">by banzai</p></div>';
+      '<p class="name serif"><small>行きつけの</small>紹介状</p><p class="by">by banzai</p></div>';
   }
 
   var html = ids.map(function (id) {
