@@ -55,6 +55,14 @@ function makeSheet(name) {
   return sheet;
 }
 
+// Apps Script が予約している URL パラメータ。使うと本番では「ファイルを開くことができません」になる
+const RESERVED = ['c', 'sid'];
+function checkReserved(params) {
+  for (const k of Object.keys(params)) {
+    if (RESERVED.includes(k)) throw new Error('Apps Script の予約パラメータは使えません: ' + k);
+  }
+}
+
 function createEnv() {
   const sheets = {};
   const triggers = [];
@@ -123,9 +131,12 @@ function createEnv() {
     sandbox,
     sheets,
     triggers,
-    get: (params) => call(sandbox.doGet({ parameter: params })),
+    get: (params) => {
+      checkReserved(params);
+      return call(sandbox.doGet({ parameter: params }));
+    },
     post: (body) => call(sandbox.doPost({ postData: { contents: JSON.stringify(body) } }))
   };
 }
 
-module.exports = { createEnv };
+module.exports = { createEnv, checkReserved };

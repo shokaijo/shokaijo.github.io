@@ -3,7 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { createEnv } = require('./gas-mock');
+const { createEnv, checkReserved } = require('./gas-mock');
 
 const port = Number(process.argv[2] || 8787);
 const root = path.join(__dirname, '..', 'docs');
@@ -21,7 +21,11 @@ http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
   if (url.pathname === '/api') {
     const send = (out) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(out.text); };
-    if (req.method === 'GET') return send(env.sandbox.doGet({ parameter: Object.fromEntries(url.searchParams) }));
+    if (req.method === 'GET') {
+      const params = Object.fromEntries(url.searchParams);
+      try { checkReserved(params); } catch (e) { res.writeHead(500); return res.end(e.message); }
+      return send(env.sandbox.doGet({ parameter: params }));
+    }
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => send(env.sandbox.doPost({ postData: { contents: body } })));

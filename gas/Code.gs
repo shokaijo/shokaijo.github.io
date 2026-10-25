@@ -46,7 +46,8 @@ function doGet(e) {
   return respond_(function () {
     if (p.action === 'referrer') return getReferrer_(p.r);
     if (p.action === 'letter') return getLetter_(p.id);
-    if (p.action === 'card') return getCard_(p.c);
+    // 台紙IDは「card」で受ける。c と sid は Apps Script が予約していて、使うとウェブアプリに届かない
+    if (p.action === 'card') return getCard_(p.card);
     throw userError_('unknown_action');
   });
 }

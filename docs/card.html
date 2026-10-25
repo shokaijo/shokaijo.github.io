@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>わたしの台紙</title>
-<link rel="stylesheet" href="style.css?v=20261025b">
+<link rel="stylesheet" href="style.css?v=20261025c">
 </head>
 <body>
 <main class="wrap">
@@ -42,8 +42,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025b"></script>
-<script src="common.js?v=20261025b"></script>
+<script src="config.js?v=20261025c"></script>
+<script src="common.js?v=20261025c"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -53,7 +53,7 @@
     ['loading', 'error', 'app'].forEach(function (k) { $(k).classList.toggle('hidden', k !== x); });
   }
 
-  S.get({ action: 'card', c: id }).then(function (d) {
+  S.get({ action: 'card', card: id }).then(function (d) {
     // 台紙のリンクから開いたら、このスマホの台紙として覚え直す
     S.rememberCard(id);
     var stamps = d.stamps || [];
