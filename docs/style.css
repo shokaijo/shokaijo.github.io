@@ -556,3 +556,19 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .keep-h { font-weight: 700; font-size: 15px; margin: 0 0 4px; }
 .keep-warn { font-size: 13px; color: var(--accent); margin: 0 0 6px; }
 #switch { margin-top: 8px; }
+
+/* 試験運用中のご注意（フッターの上） */
+.notes { margin: 28px 0 0; font-size: 13px; color: var(--muted); }
+.notes > summary {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; cursor: pointer; list-style: none;
+}
+.notes > summary::-webkit-details-marker { display: none; }
+.notes > summary::after {
+  content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.notes[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.notes ul { margin: 6px 0 0; padding: 12px 14px 12px 30px; background: var(--soft); border-radius: 10px; line-height: 1.7; }
+.notes li { margin-bottom: 4px; }
+.notes + .foot { margin-top: 8px; }

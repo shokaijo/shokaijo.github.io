@@ -128,6 +128,11 @@ with sync_playwright() as p:
     check("上のヘッダー表記はない", page.locator("#app .eyebrow").count() == 0)
     check("営業時間・定休日・期限は出さない", all(w not in page.inner_text(".letter") for w in ["営業時間", "定休日", "まで有効"]))
     check("フッターに小さく by banzai", "by banzai" in page.inner_text(".foot"))
+    check("試験運用中のご注意は、たたんで置く", page.locator("#notes").is_visible() and page.locator("#notes li").first.is_hidden())
+    page.click("#notes summary")
+    check("ご注意に、予告なく消すことと連絡先", "予告なく消すことがあります" in page.inner_text("#notes") and "貝瀬（かいせ）" in page.inner_text("#notes"))
+    page.screenshot(path=str(out / "3e_notes.png"), full_page=True)
+    page.click("#notes summary")
     check("QRを読むと何が起きるかを説明", "あなた専用の「吉祥寺はしごパスポート」にたまっていきます。" in page.inner_text("#before") and "伝わります" not in page.inner_text("#before"))
     check("「お礼」という言葉は使わない", "お礼" not in page.inner_text("#before"))
     check("地図へのリンクは出る", page.locator("#map").is_visible())
@@ -343,6 +348,8 @@ with sync_playwright() as p:
     p4.wait_for_selector("#error:not(.hidden)")
     check("知らないパスポートはお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
 
+    for pg in (page, p2, p3, p4, p5):
+        check("どの画面にもご注意がある", pg.locator("#notes").count() == 1)
     for pg in (page, p2, p3, p4, p5):
         check("横スクロールなし", pg.evaluate("document.documentElement.scrollWidth") <= 390)
 

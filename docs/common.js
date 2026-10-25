@@ -339,6 +339,29 @@
     toast._t = setTimeout(function () { el.classList.remove('show'); }, 2200);
   }
 
+  // どの画面でも、フッターの上に「試験運用中のご注意」をたたんで置く
+  var NOTES = [
+    'これは試験運用中のサービスです。予告なく、機能や画面を変えたり、提供をやめたりすることがあります。',
+    '紹介状、スタンプ、パスポートのニックネームなどの記録は、予告なく消すことがあります。',
+    '入力された呼び名やニックネームは、紹介状やパスポートを表示するためにだけ使います。',
+    'パスポートの見せる用リンクを知っている人は、誰でもそのパスポートを見られます（ニックネーム、行ったお店と日付、紹介元）。',
+    '紹介状やスタンプに、特典や割引はありません。',
+    'お店の営業時間や定休日は変わることがあります。お出かけの前に地図などで確かめてください。',
+    '記録を消してほしいときや、ご意見は、運営している貝瀬（かいせ）に直接お知らせください。'
+  ];
+  function mountNotes() {
+    var foot = document.querySelector('.foot');
+    if (!foot || document.getElementById('notes')) return;
+    var d = document.createElement('details');
+    d.id = 'notes';
+    d.className = 'notes';
+    d.innerHTML = '<summary>試験運用中のご注意</summary><ul>' +
+      NOTES.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+    foot.parentNode.insertBefore(d, foot);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountNotes);
+  else mountNotes();
+
   window.Shokaijo = {
     get: get, post: post, message: message, param: param, esc: esc, jpDate: jpDate,
     mapUrl: mapUrl, lineShareUrl: lineShareUrl, copyText: copyText,
