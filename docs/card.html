@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>吉祥寺はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025i">
+<link rel="stylesheet" href="style.css?v=20261025k">
 </head>
 <body>
 <main class="wrap">
@@ -26,7 +26,7 @@
     </section>
     <section class="card daishi pass-page">
       <ul class="stamp-grid" id="grid"></ul>
-      <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、ここにスタンプが押されます。</p>
+      <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、最初のスタンプが押されます。</p>
     </section>
 
     <details class="card howto" id="keep">
@@ -47,8 +47,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025i"></script>
-<script src="common.js?v=20261025i"></script>
+<script src="config.js?v=20261025k"></script>
+<script src="common.js?v=20261025k"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -58,9 +58,16 @@
     ['loading', 'error', 'app'].forEach(function (k) { $(k).classList.toggle('hidden', k !== x); });
   }
 
-  S.get({ action: 'card', card: id }).then(function (d) {
-    // 台紙のリンクから開いたら、このスマホの台紙として覚え直す
-    S.rememberCard(id);
+  // c がなければ、このスマホのパスポート。それもなければ、まだ白紙のパスポートを見せる
+  if (!id) id = S.myCard();
+  var blank = !id;
+  var load = blank ? Promise.resolve({ stamps: [] }) : S.get({ action: 'card', card: id });
+
+  load.then(function (d) {
+    // パスポートのリンクから開いたら、このスマホのパスポートとして覚え直す
+    if (!blank) S.rememberCard(id);
+    // 白紙のときは、とっておくものがまだないので案内を出さない
+    $('keep').classList.toggle('hidden', blank);
     $('emblem').innerHTML = S.passEmblem();
     var stamps = d.stamps || [];
     var html = stamps.map(S.stampHtml).join('');
@@ -70,6 +77,7 @@
     $('grid').innerHTML = html;
     $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
     $('empty-note').hidden = stamps.length > 0;
+    if (blank) { show('app'); return; }
     var url = S.cardUrl(id);
     $('line').href = S.lineShareUrl('わたしの吉祥寺はしごパスポートです。\n' + url);
     $('copy').addEventListener('click', function () {

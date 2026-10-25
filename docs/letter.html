@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025i">
+<link rel="stylesheet" href="style.css?v=20261025k">
 </head>
 <body>
 <main class="wrap">
@@ -103,8 +103,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025i"></script>
-<script src="common.js?v=20261025i"></script>
+<script src="config.js?v=20261025k"></script>
+<script src="common.js?v=20261025k"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -207,11 +207,13 @@
       fillPassMini($('card-open'), card);
       $('card-line').href = S.lineShareUrl('わたしの吉祥寺はしごパスポートです。\n' + S.cardUrl(card));
     }
-    var showBefore = unused && !atShop && card;
+    // 入り口は、パスポートがまだない人にも出す（開くと白紙のパスポート）
+    var showBefore = unused && !atShop;
     $('mycard-before').classList.toggle('hidden', !showBefore);
     if (showBefore) {
       $('mycard-before').href = S.cardUrl(card);
-      fillPassMini($('mycard-before'), card);
+      if (card) fillPassMini($('mycard-before'), card);
+      else $('mycard-before').innerHTML = S.passMiniHtml('blank');
     }
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
     show('app');

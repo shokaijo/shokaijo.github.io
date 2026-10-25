@@ -134,7 +134,7 @@
   }
   function cardUrl(id) {
     var u = new URL('card.html', location.href);
-    u.search = '?c=' + encodeURIComponent(id) + '&openExternalBrowser=1';
+    u.search = id ? '?c=' + encodeURIComponent(id) + '&openExternalBrowser=1' : '';
     return u.toString();
   }
 
@@ -177,6 +177,7 @@
   // 紹介状の画面から入る小さな表紙。count が分からないときは数を出さない
   function passMiniHtml(count) {
     var sub = count == null ? 'スタンプを見る' : count ? 'スタンプ ' + count + '個' : 'まだスタンプはありません';
+    if (count === 'blank') sub = 'まだスタンプはありません';
     return passEmblem() +
       '<span class="pass-mini-text"><span class="pass-mini-area">吉祥寺</span><span class="pass-mini-title">はしごパスポート</span>' +
       '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
