@@ -13,24 +13,18 @@
   <div id="loading" class="loading">紹介状を開いています…</div>
 
   <div id="error" class="hidden">
-    <p class="eyebrow">行きつけの紹介状</p>
     <div class="card"><p id="error-text"></p></div>
   </div>
 
   <div id="app" class="hidden">
-    <p class="eyebrow">行きつけの紹介状</p>
 
     <!-- 紹介状の本体（どの時点でも出す） -->
     <section class="card letter" aria-labelledby="shop-name">
       <p class="addressee serif" id="addressee"></p>
       <p class="from"><span id="from"></span>から</p>
       <h1 class="to"><span id="shop-name"></span><small> への紹介状</small></h1>
-      <dl class="facts" id="facts">
-        <dt>営業時間</dt><dd id="hours"></dd>
-        <dt>定休日</dt><dd id="closed"></dd>
-        <dt>場所</dt><dd><a id="map" href="#" target="_blank" rel="noopener">地図で見る</a></dd>
-      </dl>
-      <span class="expiry"><span id="expires"></span>まで有効</span>
+      <!-- 営業時間や定休日は変わることがあるので出さない。地図で確かめてもらう -->
+      <p class="maplink" id="facts"><a id="map" href="#" target="_blank" rel="noopener">地図で見る</a></p>
     </section>
 
     <!-- 1. 受け取った直後：読むだけ -->
@@ -152,10 +146,7 @@
     $('from-2').textContent = d.from;
     $('from-3').textContent = d.from;
     $('shop-name').textContent = d.shop.name;
-    $('hours').textContent = d.shop.hours || '—';
-    $('closed').textContent = d.shop.closed || '—';
     $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
-    $('expires').textContent = S.jpDate(d.expires);
     document.title = d.shop.name + 'への紹介状';
 
     var unused = d.status === 'unused';
@@ -179,7 +170,7 @@
       } else {
         // 受け取った直後は「行ってきました」を出さない（シールを読んだときだけ）
         form.classList.add('hidden');
-        var text = d.shop.name + 'への紹介状（' + S.jpDate(d.expires) + 'まで）\n' + selfUrl(d.id, true);
+        var text = d.shop.name + 'への紹介状\n' + selfUrl(d.id, true);
         $('line-self').href = S.lineShareUrl(text);
       }
     } else {

@@ -81,7 +81,7 @@
 
       <h3>送ったあとの流れ</h3>
       <ol>
-        <li>宛名を入れてつくると、その人専用の紹介状ができます（<span class="days">30</span>日間有効）。転送されても、使えるのは一度だけです</li>
+        <li>宛名を入れてつくると、その人専用の紹介状ができます。転送されても、使えるのは一度だけです</li>
         <li>受け取った人は、お会計のときかお店を出たあとに、店内のシールを読んで「行ってきました」を押します</li>
         <li>お店の手間はシールを置いておくだけで、費用はかかりません</li>
       </ol>
@@ -133,7 +133,7 @@
 
   function messageText(l) {
     return fullName(l.nickname, l.honorific) + 'へ\n' +
-      l.shop.name + 'への紹介状です（' + S.jpDate(l.expires) + 'まで）。\n' + letterUrl(l.id);
+      l.shop.name + 'への紹介状です。\n' + letterUrl(l.id);
   }
 
   function hideSend() {

@@ -310,6 +310,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
   color: var(--accent); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; text-align: left;
 }
 
+.maplink { margin: 0; font-size: 15px; }
+
 .letter .addressee { font-size: 20px; margin: 0 0 10px; }
 .used-words { font-size: 16px; color: var(--accent); margin: 0 0 10px; }
 .visit .chips { margin-top: 4px; }
