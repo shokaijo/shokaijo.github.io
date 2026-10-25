@@ -161,7 +161,7 @@ with sync_playwright() as p:
     check("押されたスタンプに店名", "見本の店B" in page.inner_text("#used-stamp .hanko"))
     check("押したあとに発行の欄が出る", page.locator("#card-box .issue").is_visible() and "発行しましょう" in page.inner_text("#card-box"))
     check("所持人の名前は宛名が初期値", page.input_value("#pass-name") == "まっ")
-    check("押したあとは、これで完了と分かる", "これで完了です" in page.inner_text("#used") and "お知らせします" not in page.inner_text("#used"))
+    check("押したあとに「完了」の文は出さない", "これで完了です" not in page.inner_text("#used") and "お知らせします" not in page.inner_text("#used"))
     check("行ってきた日時と書く", "行ってきた日時" in page.inner_text("#used"))
     row = [r for r in letters() if r[0] == letter_id][0]
     check("記録に言葉と方法が残る", row[13] == "また行きたい" and row[14] == "シール")
