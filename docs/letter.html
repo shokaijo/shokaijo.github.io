@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025c">
+<link rel="stylesheet" href="style.css?v=20261025d">
 </head>
 <body>
 <main class="wrap">
@@ -38,10 +38,10 @@
           <span class="howto-sub">店内のQRコードを読むと、お店のスタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店のスタンプが、あなた専用の台紙にたまっていきます。<span id="from-2"></span>にも、行ってきたことが伝わります。</p>
+          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店のスタンプが、あなた専用の「はしごパスポート」にたまっていきます。<span id="from-2"></span>にも、行ってきたことが伝わります。</p>
         </div>
       </details>
-      <p class="mycard-link hidden" id="mycard-before"><a href="#">わたしの台紙を見る</a></p>
+      <p class="mycard-link hidden" id="mycard-before"><a href="#">はしごパスポートを見る</a></p>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -67,11 +67,11 @@
       <p class="muted"><span class="from-name"></span>へ「行ってきました」をお知らせします。これで完了です。お店の人に見せるものはありません。</p>
       <p class="muted small">受け取った日時：<span id="used-at"></span></p>
       <div class="card-box hidden" id="card-box">
-        <p><b>あなたの台紙にスタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じ台紙に押されます。</p>
-        <a id="card-open" class="btn primary" href="#">台紙を見る</a>
-        <a id="card-line" class="btn line" href="#" target="_blank" rel="noopener">台紙をLINEで自分に送る</a>
+        <p><b>はしごパスポートにスタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じパスポートに押されます。</p>
+        <a id="card-open" class="btn primary" href="#">パスポートを見る</a>
+        <a id="card-line" class="btn line" href="#" target="_blank" rel="noopener">パスポートをLINEで自分に送る</a>
         <p class="muted small">ブックマークしておくか、LINEで自分に送っておくと、いつでも見返せます。</p>
-        <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しい台紙になります。続きを押したいときは、先にこの台紙のリンクを開いてから、QRコードを読んでください。</p>
+        <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しいパスポートになります。続きを押したいときは、先にこのパスポートのリンクを開いてから、QRコードを読んでください。</p>
       </div>
     </section>
 
@@ -84,8 +84,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025c"></script>
-<script src="common.js?v=20261025c"></script>
+<script src="config.js?v=20261025d"></script>
+<script src="common.js?v=20261025d"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -184,7 +184,7 @@
     $('used').classList.toggle('just-pressed', !!pressedHere);
     if (pressedHere) {
       $('card-open').href = S.cardUrl(card);
-      $('card-line').href = S.lineShareUrl('行きつけの紹介状の台紙です。\n' + S.cardUrl(card));
+      $('card-line').href = S.lineShareUrl('わたしのはしごパスポートです。\n' + S.cardUrl(card));
     }
     $('mycard-before').classList.toggle('hidden', !(unused && !atShop && card));
     if (card) $('mycard-before').querySelector('a').href = S.cardUrl(card);

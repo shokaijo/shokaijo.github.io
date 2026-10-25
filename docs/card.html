@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>わたしの台紙</title>
-<link rel="stylesheet" href="style.css?v=20261025c">
+<title>はしごパスポート</title>
+<link rel="stylesheet" href="style.css?v=20261025d">
 </head>
 <body>
 <main class="wrap">
-  <div id="loading" class="loading">台紙を開いています…</div>
+  <div id="loading" class="loading">パスポートを開いています…</div>
 
   <div id="error" class="hidden">
     <div class="card"><p id="error-text"></p></div>
@@ -18,7 +18,7 @@
 
   <div id="app" class="hidden">
     <section class="card daishi">
-      <h1 class="serif">わたしの台紙</h1>
+      <h1 class="serif">はしごパスポート</h1>
       <p class="muted" id="count"></p>
       <ul class="stamp-grid" id="grid"></ul>
       <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、ここにスタンプが押されます。</p>
@@ -26,14 +26,14 @@
 
     <details class="card howto" id="keep">
       <summary>
-        <span class="howto-title">この台紙をとっておく</span>
+        <span class="howto-title">このパスポートをとっておく</span>
         <span class="howto-sub">ブックマークするか、LINEで自分に送っておくと、いつでも見返せます</span>
       </summary>
       <div class="howto-body">
         <a id="line" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送る</a>
         <button id="copy" class="btn" type="button">リンクをコピー</button>
-        <p class="muted small">このリンクを知っている人は、だれでもこの台紙を見られます。ほかの人には送らないでください。</p>
-        <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しい台紙になります。続きを押したいときは、先にこの台紙のリンクを開いてから、QRコードを読んでください。</p>
+        <p class="muted small">このリンクを知っている人は、だれでもこのパスポートを見られます。ほかの人には送らないでください。</p>
+        <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しいパスポートになります。続きを押したいときは、先にこのパスポートのリンクを開いてから、QRコードを読んでください。</p>
       </div>
     </details>
   </div>
@@ -42,8 +42,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025c"></script>
-<script src="common.js?v=20261025c"></script>
+<script src="config.js?v=20261025d"></script>
+<script src="common.js?v=20261025d"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -65,7 +65,7 @@
     $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
     $('empty-note').hidden = stamps.length > 0;
     var url = S.cardUrl(id);
-    $('line').href = S.lineShareUrl('行きつけの紹介状の台紙です。\n' + url);
+    $('line').href = S.lineShareUrl('わたしのはしごパスポートです。\n' + url);
     $('copy').addEventListener('click', function () {
       S.copyText(url).then(function () { S.toast('リンクをコピーしました'); }, function () { S.toast('コピーできませんでした'); });
     });

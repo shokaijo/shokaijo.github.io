@@ -108,7 +108,7 @@ with sync_playwright() as p:
     check("上のヘッダー表記はない", page.locator("#app .eyebrow").count() == 0)
     check("営業時間・定休日・期限は出さない", all(w not in page.inner_text(".letter") for w in ["営業時間", "定休日", "まで有効"]))
     check("フッターに小さく by banzai", "by banzai" in page.inner_text(".foot"))
-    check("QRを読むと何が起きるかを説明", "あなた専用の台紙にたまっていきます。紹介元Aにも、行ってきたことが伝わります" in page.inner_text("#before"))
+    check("QRを読むと何が起きるかを説明", "あなた専用の「はしごパスポート」にたまっていきます。紹介元Aにも、行ってきたことが伝わります" in page.inner_text("#before"))
     check("「お礼」という言葉は使わない", "お礼" not in page.inner_text("#before"))
     check("地図へのリンクは出る", page.locator("#map").is_visible())
     page.goto(link)
@@ -141,7 +141,7 @@ with sync_playwright() as p:
     check("選んだ言葉が出る（アイコンつき）", "また行きたい" in page.inner_text("#used-words") and page.locator("#used-words svg").count() == 1)
     check("押されたスタンプに店名", "見本の店B" in page.inner_text("#used-stamp .hanko"))
     check("台紙の案内が出る", page.locator("#card-box").is_visible())
-    check("別のブラウザでは新しい台紙になる注釈", "新しい台紙になります" in page.inner_text("#card-box"))
+    check("別のブラウザでは新しい台紙になる注釈", "新しいパスポートになります" in page.inner_text("#card-box"))
     card_href = page.get_attribute("#card-open", "href")
     check("台紙のリンクは長いIDつき", "card.html?c=C" in card_href and "openExternalBrowser=1" in card_href)
     card_id = urllib.parse.parse_qs(urllib.parse.urlparse(card_href).query)["c"][0]
@@ -180,7 +180,7 @@ with sync_playwright() as p:
     check("台紙に宛名は出ない", "まっ" not in page.inner_text("#app"))
     page.screenshot(path=str(out / "8_card.png"), full_page=True)
     page.click("#keep summary")
-    check("台紙のページにも注釈", "先にこの台紙のリンクを開いてから" in page.inner_text("#keep"))
+    check("台紙のページにも注釈", "先にこのパスポートのリンクを開いてから" in page.inner_text("#keep"))
     page.screenshot(path=str(out / "8b_card_keep.png"), full_page=True)
 
     # 5. 2枚目：別の人あて。シールなしで紹介状の画面から押す（暗い表示）
@@ -231,7 +231,7 @@ with sync_playwright() as p:
     check("古い形のリンクには送り直しの案内", "新しい紹介状" in p4.inner_text("#error-text"))
     p4.goto(f"{BASE}/card.html?c=Cbad")
     p4.wait_for_selector("#error:not(.hidden)")
-    check("知らない台紙はお知らせ", "台紙は見つかりませんでした" in p4.inner_text("#error-text"))
+    check("知らない台紙はお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
 
     for pg in (page, p2, p3, p4):
         check("横スクロールなし", pg.evaluate("document.documentElement.scrollWidth") <= 390)
