@@ -24,14 +24,13 @@
       <p class="from"><span id="from"></span>から</p>
       <h1 class="to"><span id="shop-name"></span><small> への紹介状</small></h1>
       <!-- 営業時間や定休日は変わることがあるので出さない。地図で確かめてもらう -->
+      <!-- お店に入るとき：受け取った直後だけ、本体の中に出す -->
+      <p class="enter-tip hidden" id="enter-tip">お店に入って一息ついたら、この画面をお店の人に見せてみてください。一目で<span id="from-3"></span>からの紹介だとわかります。初めてのお店でも、話題に花が咲くかもしれません。</p>
       <p class="maplink" id="facts"><a id="map" href="#" target="_blank" rel="noopener">地図で見る</a></p>
     </section>
 
     <!-- 1. 受け取った直後：読むだけ -->
     <div id="before" class="hidden">
-      <!-- お店に入るとき：いちばん伝えたいことなので、たたまずに出す -->
-      <p class="enter-tip">お店に入って一息ついたら、この画面をお店の人に見せてみてください。一目で<span id="from-3"></span>からの紹介だとわかります。初めてのお店でも、話題に花が咲くかもしれません。</p>
-
       <!-- 帰りぎわ：シールの読み方（最初は閉じておく） -->
       <details class="card howto" id="howto">
         <summary>
@@ -150,6 +149,7 @@
 
     // 1. 受け取った直後 / 2. 帰り際 / 3. 押したあと を出し分ける
     $('before').classList.toggle('hidden', !unused || atShop);
+    $('enter-tip').classList.toggle('hidden', !unused || atShop);
     $('visit-card').classList.toggle('hidden', !atShop);
     $('used').classList.toggle('hidden', d.status !== 'used');
     $('closed-state').classList.toggle('hidden', d.status !== 'stopped');
