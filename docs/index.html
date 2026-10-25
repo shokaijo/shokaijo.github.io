@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状を送る</title>
-<link rel="stylesheet" href="style.css?v=20261025h">
+<link rel="stylesheet" href="style.css?v=20261025i">
 </head>
 <body>
 <main class="wrap">
@@ -24,9 +24,23 @@
 
     <section class="card">
       <h2>1. 紹介するお店</h2>
-      <p class="muted">ここに並んでいるのは、紹介状に参加しているお店だけです。どのお店も、紹介状で来たことを記録できるQRコードを置いています。</p>
-      <div id="shops" class="shop-list" role="group" aria-label="紹介するお店"></div>
+      <p class="muted">選べるのは、紹介状に参加しているお店だけです。どのお店も、紹介状で来たことを記録できるQRコードを置いています。</p>
+      <button id="shop-pick" class="picker" type="button" aria-haspopup="dialog">
+        <span class="picker-label" id="shop-pick-label">お店を選ぶ</span>
+        <span class="picker-meta" id="shop-pick-meta"></span>
+      </button>
     </section>
+
+    <!-- お店を選ぶドロワー（下からせり上がる） -->
+    <dialog id="shop-sheet" class="sheet" aria-labelledby="sheet-title">
+      <div class="sheet-head">
+        <h2 id="sheet-title">紹介するお店</h2>
+        <button id="sheet-close" class="sheet-close" type="button" aria-label="閉じる"></button>
+      </div>
+      <input id="shop-filter" class="sheet-filter" type="search" placeholder="店名で探す" autocomplete="off" aria-label="店名で探す">
+      <div id="shops" class="shop-list" role="group" aria-label="紹介するお店"></div>
+      <p class="muted small hidden" id="shop-none">見つかりませんでした。</p>
+    </dialog>
 
     <section id="to" class="card hidden">
       <h2>2. 送る相手</h2>
@@ -96,9 +110,9 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025h"></script>
+<script src="config.js?v=20261025i"></script>
 <script src="vendor/qrcode.js"></script>
-<script src="common.js?v=20261025h"></script>
+<script src="common.js?v=20261025i"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -155,11 +169,41 @@
     $('make').disabled = !canMake();
   }
 
+  function shopMeta(shop) {
+    return [shop.area, shop.closed ? '定休日：' + shop.closed : ''].filter(Boolean).join('・');
+  }
+
+  function openSheet() {
+    var d = $('shop-sheet');
+    $('shop-filter').value = '';
+    filterShops();
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+  }
+  function closeSheet() {
+    var d = $('shop-sheet');
+    if (d.close) d.close(); else d.removeAttribute('open');
+    $('shop-pick').focus();
+  }
+  function filterShops() {
+    var q = $('shop-filter').value.trim().toLowerCase();
+    var shown = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#shops .shop'), function (b) {
+      var hit = !q || b.textContent.toLowerCase().indexOf(q) >= 0;
+      b.classList.toggle('hidden', !hit);
+      if (hit) shown++;
+    });
+    $('shop-none').classList.toggle('hidden', shown > 0);
+  }
+
   function selectShop(shop, btn) {
     state.shop = shop;
     Array.prototype.forEach.call(document.querySelectorAll('.shop'), function (b) {
       b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
     });
+    $('shop-pick-label').textContent = shop.name;
+    $('shop-pick-meta').textContent = shopMeta(shop);
+    $('shop-pick').classList.add('chosen');
+    closeSheet();
     $('to').classList.remove('hidden');
     updateName();
     $('to').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -205,7 +249,7 @@
       b.className = 'shop';
       b.setAttribute('aria-pressed', 'false');
       b.innerHTML = '<span class="name">' + S.esc(shop.name) + '</span>' +
-        '<span class="meta">' + S.esc([shop.area, shop.closed ? '定休日：' + shop.closed : ''].filter(Boolean).join('・')) + '</span>';
+        '<span class="meta">' + S.esc(shopMeta(shop)) + '</span>';
       b.addEventListener('click', function () { selectShop(shop, b); });
       box.appendChild(b);
     });
@@ -213,6 +257,11 @@
   }
 
   $('nick').addEventListener('input', updateName);
+  $('shop-pick').addEventListener('click', openSheet);
+  $('sheet-close').addEventListener('click', closeSheet);
+  $('shop-filter').addEventListener('input', filterShops);
+  // 背景を押したら閉じる
+  $('shop-sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
 
   $('make').addEventListener('click', function () {
     if (!canMake()) return;
