@@ -269,6 +269,47 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .about ul, .about ol { margin: 0 0 8px; padding-left: 1.3em; font-size: 15px; }
 .about li { margin-bottom: 4px; }
 
+/* 紹介状の本体をいちばん目立たせる */
+.letter { box-shadow: 0 1px 0 rgba(60, 40, 20, 0.04), 0 14px 36px rgba(60, 40, 20, 0.14); margin-bottom: 20px; }
+
+/* 行く日まで残しておく */
+.keep { margin: 0 0 20px; text-align: center; }
+.keep .btn { margin-bottom: 4px; }
+.keep .muted { font-size: 13px; margin: 0; }
+
+/* お店での使い方（アコーディオン） */
+.howto { padding: 0; box-shadow: none; }
+.howto summary {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 16px 44px 16px 18px;
+  cursor: pointer; list-style: none; position: relative;
+}
+.howto summary::-webkit-details-marker { display: none; }
+.howto summary::after {
+  content: ""; position: absolute; right: 20px; top: 50%;
+  width: 10px; height: 10px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg); transition: transform 0.2s;
+}
+.howto[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+.howto-title { font-weight: 600; font-size: 16px; }
+.howto-sub { font-size: 13px; color: var(--muted); }
+.steps { list-style: none; margin: 0; padding: 0 18px 8px; counter-reset: step; }
+.steps > li { position: relative; padding: 14px 0 10px 38px; border-top: 1px solid var(--line); counter-increment: step; }
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 14px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--soft); color: var(--ink); font-size: 14px; font-weight: 600;
+}
+.steps h3 { font-size: 15px; margin: 2px 0 6px; }
+.steps p { font-size: 15px; }
+.linkish {
+  background: none; border: 0; padding: 4px 0; margin: 2px 0 6px;
+  color: var(--accent); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; text-align: left;
+}
+.fallback-box { padding: 12px 0 4px; }
+
 .letter .addressee { font-size: 20px; margin: 0 0 10px; }
 .fallback { margin-top: 8px; }
 .fallback summary { cursor: pointer; color: var(--muted); font-size: 14px; min-height: 32px; }
@@ -306,5 +347,6 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   #toast { transition: none; }
+  .howto summary::after { transition: none; }
   .about summary::after { transition: none; }
 }
