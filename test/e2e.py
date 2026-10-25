@@ -108,7 +108,7 @@ with sync_playwright() as p:
     check("LINEで自分に送るボタンはない", "LINEで自分に送っておく" not in page.inner_text("#app"))
     check("画面に「シール」「お店を出たあと」は出ない", "シール" not in page.inner_text("#app") and "出たあと" not in page.inner_text("#app"))
     check("お会計のときは最初は閉じている", page.locator("#howto .howto-body").is_hidden())
-    check("閉じていても要点の一行は見える", "店内のQRコードを読むと、入店スタンプが押されます" in page.inner_text("#howto summary"))
+    check("閉じていても要点の一行は見える", "店内のQRコードを読むと、来店スタンプが押されます" in page.inner_text("#howto summary"))
     check("パスポートがなくても入り口は出る", page.locator("#mycard-before").is_visible() and "まだスタンプはありません" in page.inner_text("#mycard-before"))
     page.click("#mycard-before")
     page.wait_for_selector("#app:not(.hidden)")
