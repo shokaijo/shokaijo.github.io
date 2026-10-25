@@ -156,7 +156,7 @@
     $('before').classList.toggle('hidden', !unused || atShop);
     $('visit-card').classList.toggle('hidden', !atShop);
     $('used').classList.toggle('hidden', d.status !== 'used');
-    $('closed-state').classList.toggle('hidden', d.status !== 'expired' && d.status !== 'stopped');
+    $('closed-state').classList.toggle('hidden', d.status !== 'stopped');
     // 帰り際とそのあとは、お店の案内（営業時間など）はもう要らない
     $('facts').classList.toggle('hidden', atShop || d.status === 'used');
 
@@ -184,7 +184,6 @@
       $('used-words').textContent = w ? '「' + w + '」' : '';
       $('used-words').classList.toggle('hidden', !w);
     }
-    if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は期限が切れています。またの紹介をお待ちください。';
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
     show('app');
   }

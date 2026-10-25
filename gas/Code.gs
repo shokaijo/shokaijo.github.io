@@ -366,14 +366,16 @@ function publicLetter_(row) {
   };
 }
 
-/** シート上の状態に、期限と紹介元の停止を重ねた「いまの状態」 */
+/**
+ * シート上の状態に、紹介元の停止を重ねた「いまの状態」。
+ * 期限は受け取った人には関係させない（期限を過ぎても見られ、「行ってきました」も押せる）。
+ * 期限は、記録の分析（期限内に来たか）と、宛名を消す時期の目安にだけ使う。
+ */
 function effectiveStatus_(row) {
   var s = row['状態'] || STATUS.UNUSED;
   if (s !== STATUS.UNUSED) return s;
   var ref = findReferrer_('紹介ID', row['紹介ID']);
   if (ref && !ref.active) return STATUS.STOPPED;
-  var exp = toDate_(row['期限']);
-  if (exp && endOfDay_(exp) < new Date()) return STATUS.EXPIRED;
   return STATUS.UNUSED;
 }
 

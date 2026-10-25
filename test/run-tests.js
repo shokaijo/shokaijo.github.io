@@ -185,16 +185,17 @@ test('初期設定をやり直すと、増えた列の見出しが揃う', () =>
   assert.strictEqual(env.sheets['紹介状'].data[0][14], '記録の方法');
 });
 
-test('期限の日は1日中使え、翌日から期限切れ', () => {
+test('期限を過ぎても、受け取った人はいつもどおり使える（期限は記録の分析用）', () => {
   const env = fresh();
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
   const now = new Date();
-  setLetter(env, id, '期限', now); // 今日が期限
+  setLetter(env, id, '期限', new Date(now.getTime() - 40 * 86400000)); // 40日前が期限
   assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'unused');
-  setLetter(env, id, '期限', new Date(now.getTime() - 86400000)); // 昨日が期限
-  assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'expired');
-  assert.deepStrictEqual(env.post({ action: 'visit', id }), { ok: false, error: 'letter_expired' });
+  const res = env.post({ action: 'visit', id, at: 'shop-b' });
+  assert.strictEqual(res.data.status, 'used');
+  const row = letterRow(env, id);
+  assert.ok(row['使用日時'] > row['期限'], '期限後に来たことは、日時の比較で分かる');
 });
 
 test('紹介元を止めると、新しい紹介状も未使用の紹介状も使えない', () => {
