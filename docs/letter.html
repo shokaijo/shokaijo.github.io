@@ -35,10 +35,10 @@
       <details class="card howto" id="howto">
         <summary>
           <span class="howto-title">お会計のときに</span>
-          <span class="howto-sub">店内のQRコードを読むと、あなたの台紙に<span id="shop-2"></span>のスタンプが押されます</span>
+          <span class="howto-sub">店内のQRコードを読むと、お店のスタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読んでください。「行ってきました」を押すと、<span id="from-2"></span>にお知らせして、あなたの台紙にお店のスタンプを押します。</p>
+          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店のスタンプが、あなた専用の台紙にたまっていきます。<span id="from-2"></span>にも、行ってきたことが伝わります。</p>
         </div>
       </details>
       <p class="mycard-link hidden" id="mycard-before"><a href="#">わたしの台紙を見る</a></p>
@@ -136,7 +136,6 @@
     $('from').textContent = d.from;
     $('from-2').textContent = d.from;
     $('from-3').textContent = d.from;
-    $('shop-2').textContent = d.shop.name;
     Array.prototype.forEach.call(document.querySelectorAll('.from-name'), function (el) { el.textContent = d.from; });
     $('shop-name').textContent = d.shop.name;
     $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
