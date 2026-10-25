@@ -434,3 +434,5 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .pass-mini-go { width: 9px; height: 9px; border-right: 2px solid currentColor; border-top: 2px solid currentColor; transform: rotate(45deg); flex: 0 0 auto; margin-right: 4px; }
 .pass-mini:focus-visible { outline: 3px solid color-mix(in srgb, var(--pass-gold) 60%, transparent); outline-offset: 2px; }
 #before .pass-mini { margin-top: 4px; }
+.pass-area { margin: 0; font-size: 15px; letter-spacing: 0.5em; padding-left: 0.5em; font-weight: 600; }
+.pass-mini-area { font-size: 11px; letter-spacing: 0.3em; opacity: 0.9; font-family: "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif; }

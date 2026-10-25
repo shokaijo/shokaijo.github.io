@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025e">
+<title>吉祥寺はしごパスポート</title>
+<link rel="stylesheet" href="style.css?v=20261025f">
 </head>
 <body>
 <main class="wrap">
@@ -19,8 +19,9 @@
   <div id="app" class="hidden">
     <section class="pass-cover">
       <div id="emblem"></div>
+      <p class="pass-area serif">吉祥寺</p>
       <h1 class="serif">はしごパスポート</h1>
-      <p class="pass-en">HASHIGO PASSPORT</p>
+      <p class="pass-en">KICHIJOJI HASHIGO PASSPORT</p>
       <p class="pass-count" id="count"></p>
     </section>
     <section class="card daishi pass-page">
@@ -46,8 +47,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025e"></script>
-<script src="common.js?v=20261025e"></script>
+<script src="config.js?v=20261025f"></script>
+<script src="common.js?v=20261025f"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -70,7 +71,7 @@
     $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
     $('empty-note').hidden = stamps.length > 0;
     var url = S.cardUrl(id);
-    $('line').href = S.lineShareUrl('わたしのはしごパスポートです。\n' + url);
+    $('line').href = S.lineShareUrl('わたしの吉祥寺はしごパスポートです。\n' + url);
     $('copy').addEventListener('click', function () {
       S.copyText(url).then(function () { S.toast('リンクをコピーしました'); }, function () { S.toast('コピーできませんでした'); });
     });

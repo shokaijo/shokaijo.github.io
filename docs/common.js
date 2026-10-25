@@ -178,7 +178,7 @@
   function passMiniHtml(count) {
     var sub = count == null ? 'スタンプを見る' : count ? 'スタンプ ' + count + '個' : 'まだスタンプはありません';
     return passEmblem() +
-      '<span class="pass-mini-text"><span class="pass-mini-title">はしごパスポート</span>' +
+      '<span class="pass-mini-text"><span class="pass-mini-area">吉祥寺</span><span class="pass-mini-title">はしごパスポート</span>' +
       '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
       '<span class="pass-mini-go" aria-hidden="true"></span>';
   }
