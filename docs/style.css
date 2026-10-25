@@ -312,7 +312,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 
 .maplink { margin: 0; font-size: 15px; }
 .enter-tip { margin: 0 0 12px; font-size: 14px; line-height: 1.8; color: var(--ink); }
-.howto-body { padding: 14px 18px 8px; border-top: 1px solid var(--line); margin: 0 18px; padding-left: 0; padding-right: 0; }
+.howto-body { padding: 14px 0 6px; border-top: 1px solid var(--line); margin: 0 18px; }
+.howto-body p { font-size: 14px; line-height: 1.8; }
 
 .letter .addressee { font-size: 20px; margin: 0 0 10px; }
 .used-words { font-size: 16px; color: var(--accent); margin: 0 0 10px; }

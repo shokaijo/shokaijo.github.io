@@ -17,7 +17,7 @@
     <section class="card">
       <p id="none-lead">このスマホでは、このお店への紹介状が見つかりませんでした。</p>
       <p>お手数ですが、紹介してくれた人に、お店に行ったことを直接伝えてください。</p>
-      <p class="muted">紹介状をLINEで受け取った方は、一度そのリンクを開いてから、もう一度シールを読むと見つかることがあります。</p>
+      <p class="muted">紹介状をLINEで受け取った方は、一度そのリンクを開いてから、もう一度QRコードを読むと見つかることがあります。</p>
       <p class="muted" id="other" hidden>ほかのお店への紹介状は、このスマホにあります。行き先のお店を確かめてください。</p>
     </section>
   </div>
@@ -35,7 +35,7 @@
   var netError = false;
 
   function showNone(hasOther) {
-    if (netError) document.getElementById('none-lead').textContent = '通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度シールを読んでください。';
+    if (netError) document.getElementById('none-lead').textContent = '通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度QRコードを読んでください。';
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('none').classList.remove('hidden');
     document.getElementById('other').hidden = !hasOther;
