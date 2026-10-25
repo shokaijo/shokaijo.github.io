@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>吉祥寺はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025u">
+<link rel="stylesheet" href="style.css?v=20261025v">
 </head>
 <body>
 <main class="wrap">
@@ -30,6 +30,7 @@
       <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、最初のスタンプが押されます。</p>
     </section>
     <section class="card hidden" id="issue-box"></section>
+    <div class="notice hidden" id="retry"><p>このスマホのパスポートかどうか、通信の都合で確かめられませんでした。</p><button class="btn small" type="button" id="retry-btn">読み込み直す</button></div>
     <p class="notice view-only hidden" id="view-only">このパスポートは見るだけです。このスマホでスタンプを押すと、あなた自身のパスポートになります。</p>
 
     <details class="card howto hidden" id="keep">
@@ -45,8 +46,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025u"></script>
-<script src="common.js?v=20261025u"></script>
+<script src="config.js?v=20261025v"></script>
+<script src="common.js?v=20261025v"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -57,7 +58,7 @@
   }
 
   // 表紙とスタンプ面を描く。own は「このスマホのパスポート」か
-  function draw(p, own) {
+  function draw(p, own, unsure) {
     var stamps = p.stamps || [];
     $('emblem').innerHTML = S.passEmblem();
     $('holder').classList.toggle('hidden', !p.name);
@@ -69,7 +70,8 @@
     $('grid').innerHTML = html;
     $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
     $('empty-note').hidden = stamps.length > 0;
-    $('view-only').classList.toggle('hidden', own || !p.issued);
+    $('view-only').classList.toggle('hidden', own || unsure || !p.issued);
+    $('retry').classList.toggle('hidden', !unsure);
     // 発行済みの自分のパスポートだけ、とっておく案内を出す
     var keep = own && p.issued;
     $('keep').classList.toggle('hidden', !keep);
@@ -108,8 +110,9 @@
 
   if (id) {
     // 見るためのURL：だれでも見られる。このスマホの鍵の公開IDと同じなら、自分のもの
-    Promise.all([S.get({ action: 'card', card: id }), S.myPass().catch(function () { return null; })])
-      .then(function (r) { draw(r[0], !!(r[1] && r[1].id === id)); })
+    // 鍵があるのに確かめられなかったときは、他人扱いにせず「読み込み直す」を出す
+    Promise.all([S.get({ action: 'card', card: id }), S.myPass().catch(function () { return 'unsure'; })])
+      .then(function (r) { draw(r[0], !!(r[1] && r[1].id === id), r[1] === 'unsure'); })
       .catch(fail);
   } else {
     // URLなし：このスマホのパスポート。鍵がなければ白紙
@@ -118,6 +121,7 @@
       draw(p || { stamps: [], issued: false }, !!p);
     }).catch(fail);
   }
+  $('retry-btn').addEventListener('click', function () { location.reload(); });
 })();
 </script>
 </body>

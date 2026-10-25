@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025u">
+<link rel="stylesheet" href="style.css?v=20261025v">
 </head>
 <body>
 <main class="wrap">
@@ -82,7 +82,8 @@
     <section id="used" class="card stamp hidden" aria-live="polite">
       <!-- このスマホで押した人にだけ、スタンプとお礼を出す -->
       <div id="used-mine">
-        <ul class="stamp-one" id="used-stamp"></ul>
+        <p class="notice again hidden" id="used-again"></p>
+      <ul class="stamp-one" id="used-stamp"></ul>
         <p class="greet serif" id="used-name"></p>
         <p id="used-words" class="word-tags hidden"></p>
         <p class="muted small">行ってきた日時：<span id="used-at"></span></p>
@@ -102,8 +103,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025u"></script>
-<script src="common.js?v=20261025u"></script>
+<script src="config.js?v=20261025v"></script>
+<script src="common.js?v=20261025v"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -146,7 +147,7 @@
 
   function render(d) {
     letter = d;
-    S.rememberLetter(d.id, d.shop.id);
+    S.rememberLetter(d.id, d.shop.id, { name: d.shop.name });
     var name = fullName(d.nickname, d.honorific);
 
     $('addressee').textContent = name;
@@ -199,6 +200,10 @@
       $('used-words').classList.toggle('hidden', !(d.words || []).length);
     }
     $('used').classList.toggle('just-pressed', !!justPressed);
+    // もう一度QRを読んだとき：今日押したのではないことをはっきり伝える
+    var again = mine && !!at && !justPressed;
+    $('used-again').classList.toggle('hidden', !again);
+    if (again) $('used-again').textContent = 'この紹介状のスタンプは、' + S.jpDate(d.usedAt) + 'に押してあります。紹介状1枚につき、スタンプは1つです。';
 
     // はしごパスポート：このスマホで押したときだけ（転送された人には出さない）
     $('card-box').classList.add('hidden');
@@ -232,7 +237,7 @@
       '<p class="notice warn small">このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。</p>';
     if (!p.issued) {
       box.innerHTML = lead + unsaved + S.issueFormHtml();
-      S.bindIssueForm(box, letter ? letter.nickname : '', function (r) { renderPassBox(r, true); });
+      S.bindIssueForm(box, '', function (r) { renderPassBox(r, true); });
     } else {
       box.innerHTML = (justIssued ? '<p><b>パスポートを発行しました。</b></p>' : lead) +
         '<a class="pass-mini" href="' + S.esc(S.cardUrl(p.id)) + '">' + S.passMiniHtml(p) + '</a>' +
@@ -243,7 +248,15 @@
   }
 
   function load(id) {
-    return S.get({ action: 'letter', id: id }).then(render);
+    return S.get({ action: 'letter', id: id }).then(function (d) {
+      if (d.status === 'used' && !S.pressedHere(d.id) && S.pendingHere(d.id) && S.myKey()) {
+        // 押した直後に応答が届かなかった：同じ鍵で送り直すと、本人なら1回目と同じ結果が返る
+        return S.post({ action: 'visit', id: d.id, at: d.shop.id, words: [], key: S.myKey() })
+          .then(function (r) { S.rememberLetter(r.id, r.shop.id, { pressed: true }); justPressed = r.pass || null; render(r); })
+          .catch(function () { S.rememberLetter(d.id, d.shop.id, { pending: false }); render(d); });
+      }
+      render(d);
+    });
   }
 
   $('visit-btn').addEventListener('click', function () {
@@ -251,9 +264,10 @@
     btn.disabled = true;
     $('visit-err').textContent = '';
     // 鍵は押す前にこのスマホで作っておく。応答が届かなくても、押し直せば同じ結果が返る
+    S.rememberLetter(letter.id, letter.shop.id, { pending: true });
     S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords(), key: S.ensureKey() })
       .then(function (d) {
-        S.rememberLetter(d.id, d.shop.id, true);
+        S.rememberLetter(d.id, d.shop.id, { pressed: true });
         justPressed = d.pass || null;
         render(d);
         window.scrollTo({ top: 0, behavior: 'smooth' });

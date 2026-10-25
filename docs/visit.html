@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025u">
+<link rel="stylesheet" href="style.css?v=20261025v">
 </head>
 <body>
 <main class="wrap">
@@ -14,19 +14,24 @@
 
   <div id="none" class="hidden">
     <h1>紹介状で来られた方へ</h1>
-    <section class="card">
+    <!-- ほかのお店への紹介状があるとき：まず、どこ宛てかを伝える -->
+    <section class="card hidden" id="other-box">
+      <p class="other-lead" id="other-lead"></p>
+      <div id="other-links"></div>
+      <p class="muted small">紹介状の行き先と違うお店のQRコードでは、スタンプは押せません。</p>
+    </section>
+    <section class="card" id="none-box">
       <p id="none-lead">このスマホでは、このお店への紹介状が見つかりませんでした。</p>
       <p>お手数ですが、紹介してくれた人に、お店に行ったことを直接伝えてください。</p>
       <p class="muted">紹介状をLINEで受け取った方は、一度そのリンクを開いてから、もう一度QRコードを読むと見つかることがあります。</p>
-      <p class="muted" id="other" hidden>ほかのお店への紹介状は、このスマホにあります。行き先のお店を確かめてください。</p>
     </section>
   </div>
 
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025u"></script>
-<script src="common.js?v=20261025u"></script>
+<script src="config.js?v=20261025v"></script>
+<script src="common.js?v=20261025v"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -34,11 +39,23 @@
 
   var netError = false;
 
-  function showNone(hasOther) {
+  function showNone() {
     if (netError) document.getElementById('none-lead').textContent = '通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度QRコードを読んでください。';
+    // このスマホにある、ほかのお店宛てのまだ押していない紹介状
+    var others = all.filter(function (x) { return x.shop !== shop && !x.pressed; }).slice(0, 3);
+    var box = document.getElementById('other-box');
+    if (others.length && !netError) {
+      var names = others.map(function (x) { return x.name || '別のお店'; });
+      document.getElementById('other-lead').innerHTML = 'このスマホにある紹介状は、<b>' +
+        names.map(S.esc).join('</b>・<b>') + '</b>宛てです。';
+      document.getElementById('other-links').innerHTML = others.map(function (x) {
+        return '<a class="btn" href="letter.html?id=' + encodeURIComponent(x.id) + '">' + S.esc(x.name || '別のお店') + 'への紹介状を開く</a>';
+      }).join('');
+      box.classList.remove('hidden');
+      document.getElementById('none-box').classList.add('hidden');
+    }
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('none').classList.remove('hidden');
-    document.getElementById('other').hidden = !hasOther;
   }
 
   function go(id) {
@@ -50,7 +67,7 @@
   var all = S.rememberedLetters();
   var here = all.filter(function (x) { return x.shop === shop; });
   if (!shop || !here.length) {
-    showNone(all.length > 0);
+    showNone();
     return;
   }
 
@@ -59,7 +76,7 @@
   var firstFound = null;
   (function next() {
     if (i >= here.length) {
-      if (firstFound) go(firstFound); else showNone(all.length > here.length);
+      if (firstFound) go(firstFound); else showNone();
       return;
     }
     var id = here[i++].id;

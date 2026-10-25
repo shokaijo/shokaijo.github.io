@@ -119,11 +119,17 @@
   function rememberedLetters() {
     try { return JSON.parse(storeGet(LETTERS_KEY) || '[]') || []; } catch (e) { return []; }
   }
-  function rememberLetter(id, shopId, pressed) {
+  // opt: { name: 店名, pressed: true（押した）, pending: true（押しかけて応答を待っている） }
+  function rememberLetter(id, shopId, opt) {
     if (!id) return;
-    var old = rememberedLetters().filter(function (x) { return x.id === id; })[0];
+    opt = opt || {};
+    var old = rememberedLetters().filter(function (x) { return x.id === id; })[0] || {};
     var list = rememberedLetters().filter(function (x) { return x.id !== id; });
-    list.unshift({ id: id, shop: shopId || '', at: Date.now(), pressed: !!(pressed || (old && old.pressed)) });
+    var pressed = !!(opt.pressed || old.pressed);
+    list.unshift({
+      id: id, shop: shopId || '', name: opt.name || old.name || '', at: Date.now(),
+      pressed: pressed, pending: !pressed && ('pending' in opt ? !!opt.pending : !!old.pending)
+    });
     storeSet(LETTERS_KEY, JSON.stringify(list.slice(0, 20)));
   }
 
@@ -271,6 +277,10 @@
   function pressedHere(id) {
     return rememberedLetters().some(function (x) { return x.id === id && x.pressed; });
   }
+  // 押したが応答が届かなかったかもしれない紹介状
+  function pendingHere(id) {
+    return rememberedLetters().some(function (x) { return x.id === id && x.pending; });
+  }
 
   function qrSvg(text) {
     var qr = window.qrcode(0, 'M');
@@ -297,6 +307,6 @@
     passEmblem: passEmblem, passMiniHtml: passMiniHtml,
     myKey: myKey, ensureKey: ensureKey, keyIsSaved: keyIsSaved, myPass: myPass, keepText: keepText,
     issueFormHtml: issueFormHtml, bindIssueForm: bindIssueForm, keepBoxHtml: keepBoxHtml, bindKeepBox: bindKeepBox,
-    pressedHere: pressedHere
+    pressedHere: pressedHere, pendingHere: pendingHere
   };
 })();

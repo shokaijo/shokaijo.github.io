@@ -6,7 +6,7 @@
  *   設定        … 有効期限の日数、呼び名を消すまでの日数、画面のURL
  *   店          … 紹介先になる店。お店の確認番号は店で「使用済み」にするときに使う
  *   紹介元  … 紹介元ごとに1行。有効を FALSE にすると、そのリンクは止まる
- *   紹介状      … 受け取った人がリンクを開くたびに1行できる
+ *   紹介状      … 紹介元が紹介状をつくるたびに1行できる
  *   集計        … 紹介元ごと・店ごとの数（式で自動）
  *
  *   パスポート  … 発行された「吉祥寺はしごパスポート」ごとに1行（公開ID・所持人の名前）
@@ -76,6 +76,7 @@ function doPost(e) {
 }
 
 function respond_(fn) {
+  TABLES = {};   // 1回のリクエストの中だけ、読んだシートを使い回す
   var out;
   try {
     out = { ok: true, data: fn() };
@@ -183,7 +184,7 @@ function issueLetter_(refId, shopId, nickname, honorific) {
   var shop = findShop_(shopId);
   if (!shop || !isTrue_(shop['有効'])) throw userError_('shop_not_found');
 
-  var name = String(nickname || '').replace(/\s+/g, '');
+  var name = cleanName_(nickname);
   if (!name) throw userError_('name_required');
   if (Array.from(name).length > NAME_MAX) throw userError_('name_too_long');
   var hon = HONORIFICS.indexOf(honorific) >= 0 ? honorific : 'さん';
@@ -270,10 +271,11 @@ function visitResult_(row, pub) {
 function issuePass_(key, name) {
   if (!isKey_(key)) throw userError_('bad_key');
   var pub = publicIdOf_(key);
-  var n = String(name || '').replace(/\s+/g, '');
+  var n = cleanName_(name);
   if (!n) throw userError_('pass_name_required');
   if (Array.from(n).length > NAME_MAX) throw userError_('name_too_long');
-  if (!stampsOf_(pub).length) throw userError_('pass_no_stamp');
+  var stamps = stampsOf_(pub);
+  if (!stamps.length) throw userError_('pass_no_stamp');
 
   var now = new Date();
   var pass = findPassport_(pub);
@@ -287,7 +289,7 @@ function issuePass_(key, name) {
     row['更新日時'] = now;
     appendRow_(SHEET.PASSPORTS, HEAD.PASSPORTS, row);
   }
-  return { id: pub, issued: true, name: n, stamps: stampsOf_(pub) };
+  return { id: pub, issued: true, name: n, stamps: stamps };
 }
 
 /* ------------------------------------------------------------------ */
@@ -517,7 +519,12 @@ function indexOf_(head) {
 }
 
 /** display=true なら表示どおりの文字で読む（店・紹介元の表は日付や数字に化けさせない） */
+/** 1回のリクエストの中で読んだ表。同じシートを何度も丸ごと読まないようにする */
+var TABLES = {};
+
 function readTable_(name, head, display) {
+  var ck = name + (display ? ':d' : ':v');
+  if (TABLES[ck]) return TABLES[ck];
   var range = sheet_(name).getDataRange();
   var values = display ? range.getDisplayValues() : range.getValues();
   var out = [];
@@ -526,19 +533,36 @@ function readTable_(name, head, display) {
     head.forEach(function (h, j) { o[h] = values[i][j]; });
     out.push(o);
   }
+  TABLES[ck] = out;
   return out;
+}
+
+function forgetTable_(name) {
+  delete TABLES[name + ':d'];
+  delete TABLES[name + ':v'];
 }
 
 function appendRow_(name, head, obj) {
   sheet_(name).appendRow(head.map(function (h) { return obj[h] === undefined ? '' : obj[h]; }));
+  forgetTable_(name);
 }
 
+/** 1行の中の何列かを書き換える。隣り合う列はまとめて1回で書く */
 function setCells_(name, head, rowIndex, patch) {
   var sh = sheet_(name);
   var col = indexOf_(head);
-  Object.keys(patch).forEach(function (k) {
-    sh.getRange(rowIndex, col[k] + 1).setValue(patch[k]);
-  });
+  var cols = Object.keys(patch).map(function (k) { return col[k]; }).sort(function (a, b) { return a - b; });
+  var byCol = {};
+  Object.keys(patch).forEach(function (k) { byCol[col[k]] = patch[k]; });
+  var start = 0;
+  for (var i = 1; i <= cols.length; i++) {
+    if (i === cols.length || cols[i] !== cols[i - 1] + 1) {
+      var run = cols.slice(start, i);
+      sh.getRange(rowIndex, run[0] + 1, 1, run.length).setValues([run.map(function (c) { return byCol[c]; })]);
+      start = i;
+    }
+  }
+  forgetTable_(name);
 }
 
 function findReferrer_(field, value) {
@@ -608,6 +632,13 @@ function referrerLink_(refId) {
 /** 式として解釈されないよう、先頭が = + - @ のときは ' を付けて文字として書く */
 function asText_(s) {
   return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+/** 呼び名・ニックネーム：全角半角をそろえ、空白と見えない文字（制御文字・ゼロ幅・向きを変える文字）を取り除く */
+function cleanName_(v) {
+  var s = String(v || '');
+  if (s.normalize) s = s.normalize('NFKC');
+  return s.replace(/[\s\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
 }
 
 function isTrue_(v) {

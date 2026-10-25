@@ -547,3 +547,7 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .rename[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
 .rename .issue { margin-top: 10px; }
 #toast { white-space: nowrap; }
+.other-lead { font-size: 17px; }
+.notice.again { margin: 0 0 14px; font-size: 14px; text-align: left; }
+#retry { margin: 14px 0 0; }
+#retry p { margin-bottom: 8px; }

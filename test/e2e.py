@@ -9,7 +9,8 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-BASE = "http://localhost:8787"
+import os
+BASE = os.environ.get("BASE", "http://localhost:8787")
 out = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
 out.mkdir(parents=True, exist_ok=True)
 
@@ -138,8 +139,9 @@ with sync_playwright() as p:
     # 3. ほかの店のシールでは見つからない
     page.goto(f"{BASE}/visit.html?s=shop-c")
     page.wait_for_selector("#none:not(.hidden)")
-    check("ほかの店のシールでは見つからない案内", "見つかりませんでした" in page.inner_text("#none"))
-    check("ほかの店への紹介状があることを伝える", page.locator("#other").is_visible())
+    check("ほかの店への紹介状があることを、店名つきで先に伝える", page.locator("#other-box").is_visible() and "見本の店B" in page.inner_text("#other-lead") and page.locator("#none-box").is_hidden())
+    check("その紹介状を開ける", page.locator("#other-links a").count() == 1)
+    page.screenshot(path=str(out / "3d_wrong_shop.png"), full_page=True)
 
     # 4. 帰り際：行き先の店のシールから開く
     page.goto(f"{BASE}/visit.html?s=shop-b")
@@ -160,7 +162,7 @@ with sync_playwright() as p:
     check("選んだ言葉が出る（アイコンつき）", "また行きたい" in page.inner_text("#used-words") and page.locator("#used-words svg").count() == 1)
     check("押されたスタンプに店名", "見本の店B" in page.inner_text("#used-stamp .hanko"))
     check("押したあとに発行の欄が出る", page.locator("#card-box .issue").is_visible() and "発行しませんか" in page.inner_text("#card-box") and "来店スタンプを押しました" in page.inner_text("#card-box"))
-    check("所持人の名前は宛名が初期値", page.input_value("#pass-name") == "まっ")
+    check("ニックネームの欄は空（宛名を流用しない）", page.input_value("#pass-name") == "" and page.is_disabled("#pass-issue"))
     check("押したあとに「完了」の文は出さない", "これで完了です" not in page.inner_text("#used") and "お知らせします" not in page.inner_text("#used"))
     check("行ってきた日時と書く", "行ってきた日時" in page.inner_text("#used"))
     row = [r for r in letters() if r[0] == letter_id][0]
@@ -216,10 +218,18 @@ with sync_playwright() as p:
     page.click("#visit-btn")
     page.wait_for_function("document.querySelector('#visit-err').textContent.length > 0")
     check("通信が切れたら、そう伝える", "通信できませんでした" in page.inner_text("#visit-err"))
-    page.click("#visit-btn")
-    page.wait_for_selector("#used:not(.hidden)")
     page.unroute("**/api")
-    check("押し直すと、1回目と同じ結果", page.locator("#used-mine").is_visible() and "まつもと・スタンプ" in page.inner_text("#card-box"))
+    # 押し直さずに読み直しても、本人として出る（押しかけを覚えていて、同じ鍵で確かめる）
+    page.reload()
+    page.wait_for_selector("#used:not(.hidden)")
+    page.wait_for_selector("#card-box .pass-mini")
+    check("読み直しても本人として出る", page.locator("#used-mine").is_visible() and page.locator("#used-other").is_hidden() and "まつもと・スタンプ 2個" in page.inner_text("#card-box"))
+    # 同じ店のQRをもう一度読む
+    page.goto(f"{BASE}/visit.html?s=shop-a")
+    page.wait_for_url("**/letter.html?id=*")
+    page.wait_for_selector("#used:not(.hidden)")
+    check("もう一度読むと、押してある日を伝える", page.locator("#used-again").is_visible() and "押してあります" in page.inner_text("#used-again"))
+    page.screenshot(path=str(out / "5c_again.png"), full_page=True)
     page.click("#card-box .pass-mini")
     page.wait_for_selector("#app:not(.hidden)")
     check("パスポートにスタンプが2つ（二重にならない）", page.locator(".stamp-cell:not(.empty)").count() == 2 and "スタンプ 2個" in page.inner_text("#count"))
@@ -294,7 +304,7 @@ with sync_playwright() as p:
     p4 = new_ctx(browser)
     p4.goto(f"{BASE}/visit.html?s=shop-b")
     p4.wait_for_selector("#none:not(.hidden)")
-    check("紹介状のないスマホには案内だけ", p4.locator("#other").is_hidden())
+    check("紹介状のないスマホには案内だけ", p4.locator("#other-box").is_hidden())
     check("見つからないときは、直接伝えてもらう案内", "直接伝えてください" in p4.inner_text("#none"))
     p4.screenshot(path=str(out / "7_visit_none.png"), full_page=True)
 

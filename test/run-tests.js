@@ -350,4 +350,22 @@ test('パスポート：名前は必須・8文字まで。スタンプがない�
   assert.throws(() => env.get({ action: 'card', c: pubOf(key) }), /予約パラメータ/);
 });
 
+test('名前の見えない文字は取り除き、全角半角をそろえる。同じシートを何度も読まない', () => {
+  const env = fresh();
+  const [a] = twoLetters(env);
+  const key = newKey();
+  env.post({ action: 'visit', id: a, at: 'shop-b', key });
+  const r = env.post({ action: 'issue_pass', key, name: 'ま​っ‮ｋ' });
+  assert.strictEqual(r.data.name, 'まっk');
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key, name: '​⁠' }), { ok: false, error: 'pass_name_required' });
+  // visit 1回で、紹介状シートの丸読みは2回まで（押す前と、スタンプを数えるとき）
+  const sh = env.sheets['紹介状'];
+  const orig = sh.getDataRange;
+  let n = 0;
+  sh.getDataRange = () => { n++; return orig(); };
+  const [, b] = twoLetters(env);
+  env.post({ action: 'visit', id: b, at: 'shop-c', key });
+  assert.ok(n <= 2, '紹介状シートを ' + n + ' 回読んだ');
+});
+
 console.log(`\n${passed} 件 成功`);
