@@ -1,6 +1,8 @@
 // 記録側（Code.gs）の動作確認。node test/run-tests.js で実行する。
 const assert = require('assert');
 const { createEnv } = require('./gas-mock');
+const crypto = require('crypto');
+const newKey = () => 'K' + crypto.randomBytes(16).toString('hex');
 
 let passed = 0;
 function test(name, fn) {
@@ -136,7 +138,7 @@ test('行ってきました：使用済みになり、2回目は押せない', (
   const env = fresh();
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b', 'ケン', 'さん').data.id;
-  const res = env.post({ action: 'visit', id, at: 'shop-b', words: ['楽しかった', 'また行きたい'] });
+  const res = env.post({ action: 'visit', id, at: 'shop-b', words: ['楽しかった', 'また行きたい'] , key: newKey() });
   assert.strictEqual(res.data.status, 'used');
   assert.strictEqual(res.data.nickname, 'ケン');
   assert.deepStrictEqual(res.data.words, ['楽しかった', 'また行きたい']);
@@ -164,7 +166,7 @@ test('行ってきました：ほかの店のシールからは押せない', ()
   const env = fresh();
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
   const id = issue(env, r, 'shop-b').data.id;
-  assert.deepStrictEqual(env.post({ action: 'visit', id, at: 'shop-c' }), { ok: false, error: 'wrong_shop' });
+  assert.deepStrictEqual(env.post({ action: 'visit', id, at: 'shop-c' , key: newKey() }), { ok: false, error: 'wrong_shop' });
   assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'unused');
 });
 
@@ -192,7 +194,7 @@ test('期限を過ぎても、受け取った人はいつもどおり使える�
   const now = new Date();
   setLetter(env, id, '期限', new Date(now.getTime() - 40 * 86400000)); // 40日前が期限
   assert.strictEqual(env.get({ action: 'letter', id }).data.status, 'unused');
-  const res = env.post({ action: 'visit', id, at: 'shop-b' });
+  const res = env.post({ action: 'visit', id, at: 'shop-b' , key: newKey() });
   assert.strictEqual(res.data.status, 'used');
   const row = letterRow(env, id);
   assert.ok(row['使用日時'] > row['期限'], '期限後に来たことは、日時の比較で分かる');
@@ -266,41 +268,86 @@ test('自分の店IDが空の紹介元（常連）は、全部の店が出る', 
   assert.strictEqual(env.get({ action: 'referrer', r }).data.shops.length, 3);
 });
 
-test('台紙：QRコードから押すと台紙ができ、同じ台紙に2つ目が押される', () => {
-  const env = fresh();
+const pubOf = (k) => 'P' + crypto.createHash('sha256').update(k).digest('hex').slice(0, 24);
+
+function twoLetters(env) {
   const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
-  const a = issue(env, r, 'shop-b').data.id;
-  const b = issue(env, r, 'shop-c', 'ケン', 'さん').data.id;
-  // 紹介状を開いただけでは台紙IDは出ない
-  assert.strictEqual(env.get({ action: 'letter', id: a }).data.card, undefined);
-  const v1 = env.post({ action: 'visit', id: a, at: 'shop-b', words: ['ありがとう'] });
-  assert.match(v1.data.card, /^C[0-9a-f]{24}$/);
-  const v2 = env.post({ action: 'visit', id: b, at: 'shop-c', words: [], card: v1.data.card });
-  assert.strictEqual(v2.data.card, v1.data.card);
-  // 使用済みの紹介状を開き直しても台紙IDは出ない
-  assert.strictEqual(env.get({ action: 'letter', id: a }).data.card, undefined);
-  const card = env.get({ action: 'card', card: v1.data.card }).data;
+  return [issue(env, r, 'shop-b').data.id, issue(env, r, 'shop-c', 'ケン', 'さん').data.id];
+}
+
+test('パスポート：押すと鍵から公開IDができ、発行するまでは見られない', () => {
+  const env = fresh();
+  const [a, b] = twoLetters(env);
+  const key = newKey();
+  assert.strictEqual(env.get({ action: 'letter', id: a }).data.pass, undefined);
+  const v = env.post({ action: 'visit', id: a, at: 'shop-b', words: ['ありがとう'], key });
+  assert.deepStrictEqual(v.data.pass, { id: pubOf(key), issued: false, name: '', count: 1 });
+  assert.strictEqual(letterRow(env, a)['台紙ID'], pubOf(key));
+  // 鍵そのものはシートのどこにも残らない
+  assert.ok(!JSON.stringify(Object.values(env.sheets).map((x) => x.data)).includes(key));
+  assert.deepStrictEqual(env.get({ action: 'card', card: pubOf(key) }), { ok: false, error: 'card_not_found' });
+  const mine = env.post({ action: 'mine', key }).data;
+  assert.strictEqual(mine.issued, false);
+  assert.strictEqual(mine.stamps.length, 1);
+  // 発行すると見られる。2枚目も同じパスポートに入る
+  const iss = env.post({ action: 'issue_pass', key, name: 'まっ' });
+  assert.strictEqual(iss.data.name, 'まっ');
+  env.post({ action: 'visit', id: b, at: 'shop-c', words: [], key });
+  const card = env.get({ action: 'card', card: pubOf(key) }).data;
+  assert.strictEqual(card.name, 'まっ');
   assert.deepStrictEqual(card.stamps.map((x) => x.shop), ['見本の店B', '見本の店C']);
-  assert.strictEqual(card.stamps[0].from, '紹介元A');
   assert.deepStrictEqual(card.stamps[0].words, ['ありがとう']);
-  assert.match(card.stamps[0].date, /^\d{4}-\d{2}-\d{2}$/);
   assert.strictEqual(card.stamps[0].nickname, undefined);
+  // 名前の変更は同じ行を書き換える
+  env.post({ action: 'issue_pass', key, name: 'まつもと' });
+  assert.strictEqual(env.sheets['パスポート'].data.length, 2);
+  assert.strictEqual(env.get({ action: 'card', card: pubOf(key) }).data.name, 'まつもと');
 });
 
-test('台紙：紹介状の画面から押したときはスタンプを押さない。おかしな台紙IDは作り直す', () => {
+test('パスポート：公開IDしか知らない人は、押すことも名前を変えることもできない', () => {
   const env = fresh();
-  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
-  const a = issue(env, r, 'shop-b').data.id;
-  const v = env.post({ action: 'visit', id: a, words: [], card: 'C' + '0'.repeat(24) });
-  assert.strictEqual(v.data.card, '');
+  const [a, b] = twoLetters(env);
+  const key = newKey();
+  env.post({ action: 'visit', id: a, at: 'shop-b', key });
+  env.post({ action: 'issue_pass', key, name: 'まっ' });
+  const pub = pubOf(key);
+  assert.deepStrictEqual(env.post({ action: 'visit', id: b, at: 'shop-c', key: pub }), { ok: false, error: 'bad_key' });
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key: pub, name: 'のっとり' }), { ok: false, error: 'bad_key' });
+  // 別の鍵で押すと、別のパスポートになる
+  const other = newKey();
+  env.post({ action: 'visit', id: b, at: 'shop-c', key: other });
+  assert.strictEqual(env.get({ action: 'card', card: pub }).data.stamps.length, 1);
+  assert.strictEqual(env.post({ action: 'mine', key: other }).data.stamps.length, 1);
+});
+
+test('パスポート：押し直し（通信切れ）は同じ結果を返し、二重にならない。別の鍵では使用済み', () => {
+  const env = fresh();
+  const [a] = twoLetters(env);
+  const key = newKey();
+  const v1 = env.post({ action: 'visit', id: a, at: 'shop-b', words: ['ありがとう'], key });
+  const v2 = env.post({ action: 'visit', id: a, at: 'shop-b', words: ['また行きたい'], key });
+  assert.strictEqual(v2.ok, true);
+  assert.deepStrictEqual(v2.data.pass, v1.data.pass);
+  assert.deepStrictEqual(letterRow(env, a)['ひとこと'], 'ありがとう');
+  assert.deepStrictEqual(env.post({ action: 'visit', id: a, at: 'shop-b', key: newKey() }), { ok: false, error: 'letter_used' });
+});
+
+test('パスポート：名前は必須・8文字まで。スタンプがないうちは発行しない。QRなしで押してもスタンプにならない', () => {
+  const env = fresh();
+  const [a, b] = twoLetters(env);
+  const key = newKey();
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key, name: 'まっ' }), { ok: false, error: 'pass_no_stamp' });
+  const v = env.post({ action: 'visit', id: a, words: [], key });
+  assert.strictEqual(v.data.pass, undefined);
   assert.strictEqual(letterRow(env, a)['台紙ID'], '');
-  assert.strictEqual(env.get({ action: 'card', card: 'C' + '0'.repeat(24) }).data.stamps.length, 0);
-  const b = issue(env, r, 'shop-c').data.id;
-  const v2 = env.post({ action: 'visit', id: b, at: 'shop-c', card: 'Cxyz' });
-  assert.match(v2.data.card, /^C[0-9a-f]{24}$/);
-  assert.deepStrictEqual(env.get({ action: 'card', card: 'Cxyz' }), { ok: false, error: 'card_not_found' });
-  assert.deepStrictEqual(env.get({ action: 'card', card: '' }), { ok: false, error: 'card_not_found' });
-  assert.throws(() => env.get({ action: 'card', c: v2.data.card }), /予約パラメータ/);
+  env.post({ action: 'visit', id: b, at: 'shop-c', key });
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key, name: ' ' }), { ok: false, error: 'pass_name_required' });
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key, name: 'あいうえおかきくけ' }), { ok: false, error: 'name_too_long' });
+  assert.deepStrictEqual(env.post({ action: 'issue_pass', key, name: '=1+1' }).data.name, '=1+1');
+  assert.strictEqual(env.sheets['パスポート'].data[1][1], "'=1+1");
+  assert.deepStrictEqual(env.get({ action: 'card', card: 'Pxyz' }), { ok: false, error: 'card_not_found' });
+  assert.deepStrictEqual(env.post({ action: 'mine', key: 'Kbad' }), { ok: false, error: 'bad_key' });
+  assert.throws(() => env.get({ action: 'card', c: pubOf(key) }), /予約パラメータ/);
 });
 
 console.log(`\n${passed} 件 成功`);

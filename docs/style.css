@@ -518,3 +518,17 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
   .sheet[open] { animation: sheet-up 0.22s ease-out; }
   @keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
+
+/* 所持人・見るだけ・発行 */
+.pass-holder { margin: 0 0 10px; font-size: 14px; }
+.pass-holder span { font-size: 11px; letter-spacing: 0.2em; margin-right: 10px; opacity: 0.85; }
+.pass-holder b { font-family: "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif; font-size: 20px; font-weight: 600; }
+.view-only { margin: 14px 0 0; font-size: 14px; }
+.view-only { margin-bottom: 16px; }
+.issue { text-align: left; }
+.issue-title { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+.keepbox { text-align: left; margin-top: 12px; }
+.keepbox p { font-size: 14px; }
+.notice.small { font-size: 13px; margin: 8px 0; }
+#issue-box { margin-top: 16px; }
+.greet { word-break: keep-all; overflow-wrap: anywhere; }

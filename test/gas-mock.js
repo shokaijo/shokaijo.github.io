@@ -109,6 +109,10 @@ function createEnv() {
     },
     Utilities: {
       getUuid: () => crypto.randomUUID(),
+      DigestAlgorithm: { SHA_256: 'sha256' },
+      Charset: { UTF_8: 'utf8' },
+      // Apps Script と同じく、符号つきのバイト（-128〜127）の配列を返す
+      computeDigest: (alg, text) => Array.from(crypto.createHash(alg).update(String(text), 'utf8').digest()).map((b) => (b > 127 ? b - 256 : b)),
       formatDate: fmt
     },
     ScriptApp: {

@@ -8,6 +8,9 @@
     wrong_shop: 'このシールは、紹介状の行き先とは別のお店のものです。',
     letter_not_found: 'この紹介状は見つかりませんでした。',
     card_not_found: 'このパスポートは見つかりませんでした。リンクが途中で切れていないか確かめてください。',
+    bad_key: 'このスマホのパスポートの情報が読めませんでした。ページを開き直して、もう一度お試しください。',
+    pass_name_required: '所持人の名前を入れてください。',
+    pass_no_stamp: 'スタンプが押されてから発行できます。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
     letter_stopped: 'この紹介状は、いまは使えません。',
@@ -116,26 +119,51 @@
   function rememberedLetters() {
     try { return JSON.parse(storeGet(LETTERS_KEY) || '[]') || []; } catch (e) { return []; }
   }
-  function rememberLetter(id, shopId) {
+  function rememberLetter(id, shopId, pressed) {
     if (!id) return;
+    var old = rememberedLetters().filter(function (x) { return x.id === id; })[0];
     var list = rememberedLetters().filter(function (x) { return x.id !== id; });
-    list.unshift({ id: id, shop: shopId || '', at: Date.now() });
+    list.unshift({ id: id, shop: shopId || '', at: Date.now(), pressed: !!(pressed || (old && old.pressed)) });
     storeSet(LETTERS_KEY, JSON.stringify(list.slice(0, 20)));
   }
 
-  // 自分の台紙（スタンプ）のID。押したときと、台紙のリンクを開いたときに覚え直す
-  var CARD_KEY = 'shokaijo:card';
-  function myCard() {
-    var v = storeGet(CARD_KEY) || '';
-    return /^C[0-9a-f]{24}$/.test(v) ? v : '';
+  // はしごパスポートの鍵。このスマホの中だけに置き、URLには載せない。保存できないブラウザでは、開いている間だけ持つ
+  var KEY_KEY = 'shokaijo:key';
+  var memKey = '';
+  function isKey(v) { return /^K[0-9a-f]{32}$/.test(v || ''); }
+  function myKey() {
+    var v = storeGet(KEY_KEY) || memKey;
+    return isKey(v) ? v : '';
   }
-  function rememberCard(id) {
-    if (/^C[0-9a-f]{24}$/.test(id || '')) storeSet(CARD_KEY, id);
+  function ensureKey() {
+    var k = myKey();
+    if (k) return k;
+    var b = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    k = 'K' + Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    memKey = k;
+    storeSet(KEY_KEY, k);
+    return k;
   }
-  function cardUrl(id) {
+  function keyIsSaved() { return isKey(storeGet(KEY_KEY)); }
+
+  // 見るためのURL（公開IDだけを載せる）。公開IDがなければ、このスマホのパスポートを開く
+  function cardUrl(pub) {
     var u = new URL('card.html', location.href);
-    u.search = id ? '?c=' + encodeURIComponent(id) + '&openExternalBrowser=1' : '';
+    u.search = pub ? '?c=' + encodeURIComponent(pub) + '&openExternalBrowser=1' : '';
     return u.toString();
+  }
+
+  // 自分のパスポートの様子（発行済みか・名前・スタンプ）。鍵がなければ null
+  function myPass() {
+    var k = myKey();
+    if (!k) return Promise.resolve(null);
+    return post({ action: 'mine', key: k });
+  }
+
+  // 自分用に送るときの文。人に送らないよう、自分用だと分かる形にする
+  function keepText(pub) {
+    return '（自分用メモ）吉祥寺はしごパスポートのリンクです。なくしたら再発行になります。\n' + cardUrl(pub);
   }
 
   // 選べる言葉は決まっているので、台紙ではアイコンで見せる
@@ -174,14 +202,72 @@
       '<path d="M18 11v26M30 11v26M18 16h12M18 22h12M18 28h12M18 34h12"/></svg>';
   }
 
-  // 紹介状の画面から入る小さな表紙。count が分からないときは数を出さない
-  function passMiniHtml(count) {
-    var sub = count == null ? 'スタンプを見る' : count ? 'スタンプ ' + count + '個' : 'まだスタンプはありません';
-    if (count === 'blank') sub = 'まだスタンプはありません';
+  // 紹介状の画面から入る小さな表紙。p は myPass の結果（null なら白紙）
+  function passMiniHtml(p) {
+    var count = p && p.stamps ? p.stamps.length : p && p.count != null ? p.count : 0;
+    var sub;
+    if (!p || !count) sub = 'まだスタンプはありません';
+    else if (!p.issued) sub = '未発行・スタンプ ' + count + '個';
+    else sub = '所持人 ' + p.name + '・スタンプ ' + count + '個';
     return passEmblem() +
       '<span class="pass-mini-text"><span class="pass-mini-area">吉祥寺</span><span class="pass-mini-title">はしごパスポート</span>' +
       '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
       '<span class="pass-mini-go" aria-hidden="true"></span>';
+  }
+
+  // 発行の欄。名前を入れて「発行する」を押すと、パスポートが有効になる
+  function issueFormHtml() {
+    return '<div class="issue">' +
+      '<p class="issue-title serif">吉祥寺はしごパスポートを発行しましょう</p>' +
+      '<p class="muted small">所持人の名前を入れると、パスポートが有効になります。見せた人に、誰のパスポートか分かるように表紙に入ります。</p>' +
+      '<label class="field" for="pass-name">所持人の名前（8文字まで）</label>' +
+      '<div class="name-row"><input id="pass-name" type="text" autocomplete="off" placeholder="例：まっ、ケン"></div>' +
+      '<p class="err" id="pass-err" role="alert"></p>' +
+      '<button id="pass-issue" class="btn primary" type="button">発行する</button>' +
+      '</div>';
+  }
+  function bindIssueForm(root, defaultName, onDone) {
+    var input = root.querySelector('#pass-name');
+    var btn = root.querySelector('#pass-issue');
+    var err = root.querySelector('#pass-err');
+    input.value = defaultName || '';
+    function check() {
+      var n = input.value.replace(/\s+/g, '');
+      var over = Array.from(n).length > 8;
+      err.textContent = over ? '8文字までにしてください。' : '';
+      btn.disabled = !n || over;
+    }
+    input.addEventListener('input', check);
+    check();
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      err.textContent = '';
+      post({ action: 'issue_pass', key: myKey(), name: input.value })
+        .then(function (d) { onDone(d); })
+        .catch(function (e) { err.textContent = message(e); check(); });
+    });
+  }
+
+  // 発行したあとの「とっておく」欄。見るためのリンクを、自分用に送ってもらう
+  function keepBoxHtml(pub) {
+    return '<div class="keepbox">' +
+      '<p><b>このリンクが、あなたのパスポートです。</b>なくしたら再発行になるので、ブックマークするか、LINEのKeepメモに送っておいてください。</p>' +
+      '<a class="btn line keep-line" href="' + esc(lineShareUrl(keepText(pub))) + '" target="_blank" rel="noopener">LINEのKeepメモに送る</a>' +
+      '<button class="btn keep-copy" type="button" data-url="' + esc(cardUrl(pub)) + '">リンクをコピー</button>' +
+      '<p class="muted small">リンクは見るためのものです。友達に見せても、スタンプを押されたり名前を変えられたりすることはありません。スタンプを押せるのは、このスマホのこのブラウザだけです。</p>' +
+      '</div>';
+  }
+  function bindKeepBox(root) {
+    var b = root.querySelector('.keep-copy');
+    if (!b) return;
+    b.addEventListener('click', function () {
+      copyText(b.getAttribute('data-url')).then(function () { toast('リンクをコピーしました'); }, function () { toast('コピーできませんでした'); });
+    });
+  }
+
+  // このスマホで「行ってきました」を押した紹介状か（転送された人と見分ける）
+  function pressedHere(id) {
+    return rememberedLetters().some(function (x) { return x.id === id && x.pressed; });
   }
 
   function qrSvg(text) {
@@ -205,7 +291,10 @@
     mapUrl: mapUrl, lineShareUrl: lineShareUrl, copyText: copyText,
     storeGet: storeGet, storeSet: storeSet, qrSvg: qrSvg, toast: toast,
     rememberedLetters: rememberedLetters, rememberLetter: rememberLetter,
-    myCard: myCard, rememberCard: rememberCard, cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml,
-    passEmblem: passEmblem, passMiniHtml: passMiniHtml
+    cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml,
+    passEmblem: passEmblem, passMiniHtml: passMiniHtml,
+    myKey: myKey, ensureKey: ensureKey, keyIsSaved: keyIsSaved, myPass: myPass, keepText: keepText,
+    issueFormHtml: issueFormHtml, bindIssueForm: bindIssueForm, keepBoxHtml: keepBoxHtml, bindKeepBox: bindKeepBox,
+    pressedHere: pressedHere
   };
 })();

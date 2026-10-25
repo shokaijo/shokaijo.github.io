@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状を送る</title>
-<link rel="stylesheet" href="style.css?v=20261025m">
+<link rel="stylesheet" href="style.css?v=20261025o">
 </head>
 <body>
 <main class="wrap">
@@ -110,9 +110,9 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025m"></script>
+<script src="config.js?v=20261025o"></script>
 <script src="vendor/qrcode.js"></script>
-<script src="common.js?v=20261025m"></script>
+<script src="common.js?v=20261025o"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -167,6 +167,12 @@
     $('preview').innerHTML = n ? '宛名：<b>' + S.esc(fullName(n, hon())) + 'へ</b>' : '';
     hideSend();               // 宛名や店を変えたら、つくった紹介状は送る欄から外す（つくり直す）
     $('make').disabled = !canMake();
+    makeLabel();
+  }
+
+  // つくったあとは、押せないボタンがエラーに見えないよう、文言を変える
+  function makeLabel() {
+    $('make').textContent = state.letter ? 'つくりました（下から送れます）' : '紹介状をつくる';
   }
 
   function shopMeta(shop) {
@@ -178,10 +184,15 @@
     $('shop-filter').value = '';
     filterShops();
     if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+    // 戻る操作でページから出ないよう、開いている間は履歴を1つ積む
+    history.pushState({ sheet: 1 }, '');
   }
   function closeSheet() {
     var d = $('shop-sheet');
-    if (d.close) d.close(); else d.removeAttribute('open');
+    if (d.close) d.close(); else { d.removeAttribute('open'); onSheetClosed(); }
+  }
+  function onSheetClosed() {
+    if (history.state && history.state.sheet) history.back();
     $('shop-pick').focus();
   }
   function filterShops() {
@@ -260,6 +271,12 @@
   $('shop-pick').addEventListener('click', openSheet);
   $('sheet-close').addEventListener('click', closeSheet);
   $('shop-filter').addEventListener('input', filterShops);
+  $('shop-sheet').addEventListener('close', onSheetClosed);
+  // 戻る操作では、ドロワーを閉じるだけにする
+  window.addEventListener('popstate', function () {
+    var d = $('shop-sheet');
+    if (d.open) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  });
   // 背景を押したら閉じる
   $('shop-sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
 
@@ -273,7 +290,7 @@
       .then(function (l) {
         state.busy = false;
         // 通信中に宛名や店が変わっていたら、古い結果は出さない
-        if (state.shop && state.shop.id === req.shop && nick() === req.nickname && hon() === req.honorific) showSend(l);
+        if (state.shop && state.shop.id === req.shop && nick() === req.nickname && hon() === req.honorific) { showSend(l); makeLabel(); }
       })
       .catch(function (err) {
         state.busy = false;

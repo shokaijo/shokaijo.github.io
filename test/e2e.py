@@ -36,7 +36,7 @@ def check(name, cond):
 def new_ctx(browser, **kw):
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale="ja-JP", **kw)
     pg = ctx.new_page()
-    pg.on("console", lambda m: m.type == "error" and errors.append(m.text))
+    pg.on("console", lambda m: m.type == "error" and "ERR_FAILED" not in m.text and errors.append(m.text))
     pg.on("pageerror", lambda e: errors.append(str(e)))
     return pg
 
@@ -62,6 +62,11 @@ with sync_playwright() as p:
     check("店名で絞り込める", page.locator("#shops .shop:not(.hidden)").count() == 1)
     page.fill("#shop-filter", "")
     page.screenshot(path=str(out / "0_sheet.png"), full_page=False)
+    page.go_back()
+    page.wait_for_timeout(300)
+    check("戻る操作ではドロワーが閉じるだけ", page.locator("#shop-sheet").is_hidden() and f"r={ref}" in page.url)
+    page.click("#shop-pick")
+    page.wait_for_selector("#shop-sheet[open]")
     check("説明は最初は閉じている", page.locator("details.about li").first.is_hidden())
     check("店を選ぶまで宛名の欄は出ない", page.locator("#to").is_hidden())
     page.locator(".shop", has_text="見本の店B").click()
@@ -154,19 +159,34 @@ with sync_playwright() as p:
     check("「いらっしゃいませ」は出ない", "いらっしゃいませ" not in page.inner_text("#app"))
     check("選んだ言葉が出る（アイコンつき）", "また行きたい" in page.inner_text("#used-words") and page.locator("#used-words svg").count() == 1)
     check("押されたスタンプに店名", "見本の店B" in page.inner_text("#used-stamp .hanko"))
-    check("台紙の案内が出る", page.locator("#card-box").is_visible())
-    check("別のブラウザでは新しい台紙になる注釈", "新しいパスポートになります" in page.inner_text("#card-box"))
-    card_href = page.get_attribute("#card-open", "href")
-    check("台紙のリンクは長いIDつき", "card.html?c=C" in card_href and "openExternalBrowser=1" in card_href)
-    card_id = urllib.parse.parse_qs(urllib.parse.urlparse(card_href).query)["c"][0]
-    check("台紙をLINEで自分に送れる", card_id in urllib.parse.unquote(page.get_attribute("#card-line", "href")))
+    check("押したあとに発行の欄が出る", page.locator("#card-box .issue").is_visible() and "発行しましょう" in page.inner_text("#card-box"))
+    check("所持人の名前は宛名が初期値", page.input_value("#pass-name") == "まっ")
     check("押したあとは、これで完了と分かる", "これで完了です" in page.inner_text("#used") and "お知らせします" not in page.inner_text("#used"))
+    check("行ってきた日時と書く", "行ってきた日時" in page.inner_text("#used"))
     row = [r for r in letters() if r[0] == letter_id][0]
     check("記録に言葉と方法が残る", row[13] == "また行きたい" and row[14] == "シール")
-    check("記録に台紙ID", row[15] == card_id)
+    pub = row[15]
+    check("記録には公開IDだけ", pub.startswith("P") and len(pub) == 25)
+    key = page.evaluate("localStorage.getItem('shokaijo:key')")
+    check("鍵はこのスマホだけにあり、シートにない", key and key.startswith("K") and key not in json.dumps(state()))
     page.screenshot(path=str(out / "5_used.png"), full_page=True)
+    # 発行する前に開き直しても、発行の欄に戻れる（指摘3）
+    page.reload()
+    page.wait_for_selector("#card-box .issue")
+    check("開き直しても発行の欄が出る", page.locator("#card-box .issue").is_visible())
+    page.fill("#pass-name", "まつもと")
+    page.click("#pass-issue")
+    page.wait_for_selector("#card-box .keepbox")
+    check("発行したら、とっておく案内", "このリンクが、あなたのパスポートです" in page.inner_text("#card-box") and "なくしたら再発行" in page.inner_text("#card-box"))
+    keep_href = urllib.parse.unquote(page.get_attribute("#card-box .keep-line", "href"))
+    check("自分用だと分かる文で送る", "（自分用メモ）" in keep_href and pub in keep_href and key not in keep_href)
+    check("小さな表紙に所持人", "所持人 まつもと" in page.inner_text("#card-box .pass-mini"))
+    page.screenshot(path=str(out / "5b_issued.png"), full_page=True)
+    page.reload()
+    page.wait_for_selector("#card-box .pass-mini")
+    check("発行後に開き直しても表紙が出る", "所持人 まつもと" in page.inner_text("#card-box"))
 
-    # 4b. 同じスマホで2枚目：同じ台紙に押される
+    # 4b. 同じスマホで2枚目：同じパスポートに押される。通信が切れても二重にならない（指摘2）
     page.goto(f"{BASE}/?r={ref}")
     page.wait_for_selector("#app:not(.hidden)")
     page.click("#shop-pick")
@@ -174,32 +194,46 @@ with sync_playwright() as p:
     page.fill("#nick", "まっ")
     page.click("#make")
     page.wait_for_selector("#send:not(.hidden)")
+    check("つくったあとはボタンの文言が変わる", "つくりました" in page.inner_text("#make"))
     link3 = line_text(page).strip().splitlines()[-1]
     page.goto(link3)
     page.wait_for_selector("#app:not(.hidden)")
-    check("台紙があれば、受け取った画面に小さな表紙", page.locator("#mycard-before").is_visible())
     page.wait_for_function("document.querySelector('#mycard-before').textContent.includes('スタンプ 1個')")
-    check("小さな表紙にスタンプの数", "スタンプ 1個" in page.inner_text("#mycard-before"))
+    check("小さな表紙に所持人とスタンプの数", "所持人 まつもと・スタンプ 1個" in page.inner_text("#mycard-before"))
     page.screenshot(path=str(out / "4c_letter_with_pass.png"), full_page=True)
     page.goto(f"{BASE}/visit.html?s=shop-a")
     page.wait_for_selector("#visit-card:not(.hidden)")
     page.locator("#words label.chip", has_text="ありがとう").click()
     page.locator("#words label.chip", has_text="楽しかった").click()
+    cut = {"n": 0}
+    def drop_once(route):
+        if route.request.method == "POST" and '"visit"' in (route.request.post_data or "") and cut["n"] == 0:
+            cut["n"] = 1
+            route.fetch()          # サーバーは記録する
+            return route.abort()   # 応答だけ届かない
+        route.continue_()
+    page.route("**/api", drop_once)
+    page.click("#visit-btn")
+    page.wait_for_function("document.querySelector('#visit-err').textContent.length > 0")
+    check("通信が切れたら、そう伝える", "通信できませんでした" in page.inner_text("#visit-err"))
     page.click("#visit-btn")
     page.wait_for_selector("#used:not(.hidden)")
-    check("2枚目も同じ台紙", card_id in page.get_attribute("#card-open", "href"))
-    page.click("#card-open")
+    page.unroute("**/api")
+    check("押し直すと、1回目と同じ結果", page.locator("#used-mine").is_visible() and "所持人 まつもと" in page.inner_text("#card-box"))
+    page.click("#card-box .pass-mini")
     page.wait_for_selector("#app:not(.hidden)")
-    check("台紙にスタンプが2つ", page.locator(".stamp-cell:not(.empty)").count() == 2 and "スタンプ 2個" in page.inner_text("#count"))
-    check("パスポートの表紙が出る", page.locator(".pass-cover").is_visible() and "KICHIJOJI HASHIGO PASSPORT" in page.inner_text(".pass-cover") and "吉祥寺" in page.inner_text(".pass-cover h1, .pass-area"))
-    check("台紙は古い順", page.locator(".stamp-cell:not(.empty) .hanko-shop").all_inner_texts() == ["見本の店B", "見本の店A"])
+    check("パスポートにスタンプが2つ（二重にならない）", page.locator(".stamp-cell:not(.empty)").count() == 2 and "スタンプ 2個" in page.inner_text("#count"))
+    check("表紙に所持人", page.inner_text("#holder-name") == "まつもと")
+    check("パスポートの表紙が出る", "KICHIJOJI HASHIGO PASSPORT" in page.inner_text(".pass-cover"))
+    check("古い順", page.locator(".stamp-cell:not(.empty) .hanko-shop").all_inner_texts() == ["見本の店B", "見本の店A"])
     check("スタンプに誰の紹介か", "紹介元Aの紹介" in page.inner_text(".stamp-cell >> nth=0"))
     check("言葉はアイコンで出る", page.locator(".stamp-cell >> nth=1").locator("svg.icon").count() == 2)
-    check("空いた枠も並ぶ", page.locator(".stamp-cell.empty").count() == 4)
-    check("台紙に宛名は出ない", "まっ" not in page.inner_text("#app"))
+    check("自分のものなら「見るだけ」は出ない", page.locator("#view-only").is_hidden() and page.locator("#keep").is_visible())
+    check("パスポートに宛名は出ない", "まっちゃん" not in page.inner_text("#app"))
+    pass_url = page.url
+    check("URLは公開ID", f"c={pub}" in pass_url)
     page.screenshot(path=str(out / "8_card.png"), full_page=True)
     page.click("#keep summary")
-    check("台紙のページにも注釈", "先にこのパスポートのリンクを開いてから" in page.inner_text("#keep"))
     page.screenshot(path=str(out / "8b_card_keep.png"), full_page=True)
 
     # 5. 2枚目：別の人あて。シールなしで紹介状の画面から押す（暗い表示）
@@ -223,7 +257,20 @@ with sync_playwright() as p:
     p2.wait_for_selector("#used:not(.hidden)")
     row2 = [r for r in letters() if r[4] == "見本の店C"][0]
     check("言葉を選ばずに押せる", row2[14] == "シール" and row2[13] == "")
-    check("別のスマホでは別の台紙", row2[15] and row2[15] != card_id)
+    check("別のスマホでは別のパスポート", row2[15] and row2[15] != pub)
+    check("別のスマホでも、押したあとは発行の欄", p2.locator("#card-box .issue").is_visible())
+
+    # 5b. 他人がパスポートのリンクを開く：見るだけ。自分のパスポートは変わらない（指摘1）
+    p2.goto(pass_url)
+    p2.wait_for_selector("#app:not(.hidden)")
+    check("他人には「見るだけ」", p2.locator("#view-only").is_visible() and p2.locator("#keep").is_hidden() and p2.locator("#issue-box").is_hidden())
+    check("他人にも所持人は見える", p2.inner_text("#holder-name") == "まつもと")
+    p2.screenshot(path=str(out / "9_view_only_dark.png"), full_page=True)
+    p2_key = p2.evaluate("localStorage.getItem('shokaijo:key')")
+    check("他人の鍵は書き換わらない", p2_key and p2_key != key)
+    p2.goto(f"{BASE}/card.html")
+    p2.wait_for_selector("#app:not(.hidden)")
+    check("他人の自分のパスポートは未発行のまま、発行できる", p2.locator("#issue-box .issue").is_visible() and p2.locator(".stamp-cell:not(.empty)").count() == 1)
 
     # 6. 転送されたリンクを別のスマホで開いても、使用済みの同じ1枚
     p3 = new_ctx(browser)
@@ -231,7 +278,8 @@ with sync_playwright() as p:
     p3.wait_for_selector("#app:not(.hidden)")
     check("転送されても新しい紹介状はできない", len(letters()) == 3)
     check("転送先では使用済みとして出る", p3.locator("#used").is_visible())
-    check("転送先には台紙の案内を出さない", p3.locator("#card-box").is_hidden())
+    check("転送先には、使用済みとだけ出す", p3.locator("#used-other").is_visible() and p3.locator("#used-mine").is_hidden())
+    check("転送先にはパスポートの案内を出さない", p3.locator("#card-box").is_hidden())
 
     # 7. 紹介状を開いていないスマホでシールを読む
     p4 = new_ctx(browser)
@@ -249,9 +297,9 @@ with sync_playwright() as p:
     p4.wait_for_selector("#error:not(.hidden)")
     check("古い形のリンクは紹介状をつくらない", len(letters()) == 3)
     check("古い形のリンクには送り直しの案内", "新しい紹介状" in p4.inner_text("#error-text"))
-    p4.goto(f"{BASE}/card.html?c=Cbad")
+    p4.goto(f"{BASE}/card.html?c=Pbad")
     p4.wait_for_selector("#error:not(.hidden)")
-    check("知らない台紙はお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
+    check("知らないパスポートはお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
 
     for pg in (page, p2, p3, p4):
         check("横スクロールなし", pg.evaluate("document.documentElement.scrollWidth") <= 390)

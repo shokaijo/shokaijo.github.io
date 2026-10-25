@@ -9,8 +9,13 @@
  *   紹介状      … 受け取った人がリンクを開くたびに1行できる
  *   集計        … 紹介元ごと・店ごとの数（式で自動）
  *
- * 台紙（スタンプ）は別のシートを持たない。紹介状の行の「台紙ID」が同じものを集めると、その人の台紙になる。
- * 台紙IDは推測できない長さにして、URLを知っている人だけが見られるようにする。名前や連絡先は持たない。
+ *   パスポート  … 発行された「吉祥寺はしごパスポート」ごとに1行（公開ID・所持人の名前）
+ *
+ * はしごパスポートの作り
+ *   鍵     … お客さんのスマホの中だけで作る秘密の値。スタンプを押す・名前を変えるときだけ送る。シートには残さない
+ *   公開ID … 鍵から SHA-256 で作る。見るためのURLに載せる。公開IDから鍵は逆算できないので、URLを人に送っても押されない
+ *   紹介状の行の「台紙ID」には公開IDを入れる。同じ公開IDの行を集めると、その人のスタンプになる
+ *   名前を入れて「発行」するまでは、スタンプは記録されるがパスポートとしては見られない
  */
 
 var SHEET = {
@@ -18,7 +23,8 @@ var SHEET = {
   SHOPS: '店',
   REFERRERS: '紹介元',
   LETTERS: '紹介状',
-  SUMMARY: '集計'
+  SUMMARY: '集計',
+  PASSPORTS: 'パスポート'
 };
 
 var HEAD = {
@@ -27,7 +33,8 @@ var HEAD = {
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '宛名', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
-            'ひとこと', '記録の方法', '台紙ID']
+            'ひとこと', '記録の方法', '台紙ID'],
+  PASSPORTS: ['公開ID', '所持人', '発行日時', '更新日時']
 };
 
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
@@ -61,7 +68,9 @@ function doPost(e) {
   }
   return respond_(function () {
     if (body.action === 'issue') return withLock_(function () { return issueLetter_(body.r, body.s, body.nickname, body.honorific); });
-    if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words, body.card); });
+    if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words, body.key); });
+    if (body.action === 'issue_pass') return withLock_(function () { return issuePass_(body.key, body.name); });
+    if (body.action === 'mine') return myPass_(body.key);
     throw userError_('unknown_action');
   });
 }
@@ -121,24 +130,40 @@ function getLetter_(letterId) {
   return publicLetter_(hit.row);
 }
 
-/** 台紙：その台紙IDで押したスタンプを、古い順に並べる */
-function getCard_(cardId) {
-  if (!isCardId_(cardId)) throw userError_('card_not_found');
+/** パスポート（見るため）：発行済みのものだけ。所持人の名前とスタンプを返す */
+function getCard_(publicId) {
+  if (!isPublicId_(publicId)) throw userError_('card_not_found');
+  var pass = findPassport_(publicId);
+  if (!pass) throw userError_('card_not_found');
+  return { id: publicId, issued: true, name: String(pass['所持人']), stamps: stampsOf_(publicId) };
+}
+
+/** 自分のパスポート：鍵から。未発行でも、押したスタンプを返す（発行の画面で使う） */
+function myPass_(key) {
+  if (!isKey_(key)) throw userError_('bad_key');
+  var pub = publicIdOf_(key);
+  var pass = findPassport_(pub);
+  return { id: pub, issued: !!pass, name: pass ? String(pass['所持人']) : '', stamps: stampsOf_(pub) };
+}
+
+function stampsOf_(publicId) {
+  var shops = {};
+  readTable_(SHEET.SHOPS, HEAD.SHOPS, true).forEach(function (s) { shops[String(s['店ID'])] = String(s['店名']); });
   var stamps = readTable_(SHEET.LETTERS, HEAD.LETTERS)
-    .filter(function (r) { return String(r['台紙ID']) === cardId && r['状態'] === STATUS.USED; })
+    .filter(function (r) { return String(r['台紙ID']) === publicId && r['状態'] === STATUS.USED; })
     .map(function (r) {
-      var shop = findShop_(r['行き先の店ID']);
+      var used = toDate_(r['使用日時']);
       return {
-        shop: shop ? String(shop['店名']) : String(r['行き先']),
+        shop: shops[String(r['行き先の店ID'])] || String(r['行き先']),
         from: String(r['紹介元']),
-        date: formatDate_(toDate_(r['使用日時'])),
-        t: (toDate_(r['使用日時']) || new Date(0)).getTime(),
+        date: formatDate_(used),
+        t: (used || new Date(0)).getTime(),
         words: r['ひとこと'] ? String(r['ひとこと']).split('、') : []
       };
     })
     .sort(function (a, b) { return a.t - b.t; });
   stamps.forEach(function (x) { delete x.t; });
-  return { stamps: stamps };
+  return stamps;
 }
 
 /* ------------------------------------------------------------------ */
@@ -190,26 +215,34 @@ function issueLetter_(refId, shopId, nickname, honorific) {
  * at はお店のシールから来たときの店ID（紹介状の画面から押したときは空）。
  * 特典がないので来店を厳しくは確かめない。シールの店と行き先が違うときだけ止める。
  */
-function visit_(letterId, atShopId, words, cardId) {
+function visit_(letterId, atShopId, words, key) {
   var hit = findLetter_(letterId);
   if (!hit) throw userError_('letter_not_found');
-  var state = effectiveStatus_(hit.row);
-  if (state !== STATUS.UNUSED) throw userError_('letter_' + statusCode_(state));
 
   var at = String(atShopId || '').trim();
   if (at && at !== String(hit.row['行き先の店ID'])) throw userError_('wrong_shop');
+
+  // スタンプは、お店のQRコードから押したときだけ。押した人のスマホの鍵から公開IDを作る
+  var pub = '';
+  if (at) {
+    if (!isKey_(key)) throw userError_('bad_key');
+    pub = publicIdOf_(key);
+  }
+
+  var state = effectiveStatus_(hit.row);
+  if (state !== STATUS.UNUSED) {
+    // 通信が切れて押し直したとき：同じ鍵で押してあれば、1回目と同じ結果を返す
+    if (state === STATUS.USED && pub && String(hit.row['台紙ID']) === pub) return visitResult_(hit.row, pub);
+    throw userError_('letter_' + statusCode_(state));
+  }
 
   var picked = (Array.isArray(words) ? words : []).filter(function (w, i, a) {
     return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
   });
 
-  // スタンプは、お店のQRコードから押したときだけ。台紙がまだなければ、ここで作る
-  var card = '';
-  if (at) card = isCardId_(cardId) ? cardId : newCardId_();
-
   var now = new Date();
   var patch = {
-    '台紙ID': card,
+    '台紙ID': pub,
     '状態': STATUS.USED,
     '使用日時': now,
     'ひとこと': picked.join('、'),
@@ -217,10 +250,44 @@ function visit_(letterId, atShopId, words, cardId) {
   };
   setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, patch);
   Object.keys(patch).forEach(function (k) { hit.row[k] = patch[k]; });
-  var out = publicLetter_(hit.row);
-  // 台紙IDは、押した本人にだけ返す（紹介状を開いただけの人には見せない）
-  out.card = card;
+  return visitResult_(hit.row, pub);
+}
+
+/** 押した本人にだけ返す形：紹介状の中身と、自分のパスポートの様子 */
+function visitResult_(row, pub) {
+  var out = publicLetter_(row);
+  if (pub) {
+    var pass = findPassport_(pub);
+    out.pass = { id: pub, issued: !!pass, name: pass ? String(pass['所持人']) : '', count: stampsOf_(pub).length };
+  }
   return out;
+}
+
+/**
+ * パスポートを発行する（名前を変えるときも同じ）。鍵を持っているスマホからだけ。
+ * スタンプが1つもないうちは発行しない（押したあとに発行する流れ）。
+ */
+function issuePass_(key, name) {
+  if (!isKey_(key)) throw userError_('bad_key');
+  var pub = publicIdOf_(key);
+  var n = String(name || '').replace(/\s+/g, '');
+  if (!n) throw userError_('pass_name_required');
+  if (Array.from(n).length > NAME_MAX) throw userError_('name_too_long');
+  if (!stampsOf_(pub).length) throw userError_('pass_no_stamp');
+
+  var now = new Date();
+  var pass = findPassport_(pub);
+  if (pass) {
+    setCells_(SHEET.PASSPORTS, HEAD.PASSPORTS, pass._rowIndex, { '所持人': asText_(n), '更新日時': now });
+  } else {
+    var row = {};
+    row['公開ID'] = pub;
+    row['所持人'] = asText_(n);
+    row['発行日時'] = now;
+    row['更新日時'] = now;
+    appendRow_(SHEET.PASSPORTS, HEAD.PASSPORTS, row);
+  }
+  return { id: pub, issued: true, name: n, stamps: stampsOf_(pub) };
 }
 
 /* ------------------------------------------------------------------ */
@@ -275,6 +342,8 @@ function setup() {
   ensureSheet_(SHEET.SHOPS, HEAD.SHOPS);
   ensureSheet_(SHEET.REFERRERS, HEAD.REFERRERS);
   ensureSheet_(SHEET.LETTERS, HEAD.LETTERS);
+  ensureSheet_(SHEET.PASSPORTS, HEAD.PASSPORTS);
+  sheet_(SHEET.PASSPORTS).getRange('A:B').setNumberFormat('@');
 
   var settings = sheet_(SHEET.SETTINGS);
   if (settings.getLastRow() < 2) {
@@ -549,13 +618,28 @@ function newId_(prefix) {
   return prefix + Utilities.getUuid().replace(/-/g, '').slice(0, 12);
 }
 
-/** 台紙ID：C ＋ 24桁。推測されないよう、紹介状IDより長くする */
-function newCardId_() {
-  return 'C' + (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').slice(0, 24);
+/** 鍵：お客さんのスマホで作る。K ＋ 32桁 */
+function isKey_(v) {
+  return /^K[0-9a-f]{32}$/.test(String(v || ''));
 }
 
-function isCardId_(v) {
-  return /^C[0-9a-f]{24}$/.test(String(v || ''));
+/** 公開ID：鍵の SHA-256 の先頭24桁に P を付ける。鍵からは作れるが、公開IDから鍵は戻せない */
+function publicIdOf_(key) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, key, Utilities.Charset.UTF_8);
+  var hex = bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+  return 'P' + hex.slice(0, 24);
+}
+
+function isPublicId_(v) {
+  return /^P[0-9a-f]{24}$/.test(String(v || ''));
+}
+
+function findPassport_(publicId) {
+  var rows = readTable_(SHEET.PASSPORTS, HEAD.PASSPORTS, true);
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i]['公開ID']) === publicId) return rows[i];
+  }
+  return null;
 }
 
 function randomCode_() {

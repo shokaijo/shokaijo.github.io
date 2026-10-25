@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025m">
+<link rel="stylesheet" href="style.css?v=20261025o">
 </head>
 <body>
 <main class="wrap">
@@ -60,7 +60,7 @@
           <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
         </div>
       </details>
-      <a class="pass-mini hidden" id="mycard-before" href="#"></a>
+      <a class="pass-mini hidden" id="mycard-before" href="card.html"></a>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -80,18 +80,18 @@
 
     <!-- 3. 押したあと -->
     <section id="used" class="card stamp hidden" aria-live="polite">
-      <ul class="stamp-one" id="used-stamp"></ul>
-      <p class="greet serif" id="used-name"></p>
-      <p id="used-words" class="word-tags hidden"></p>
-      <p class="muted">これで完了です。お店の人に見せるものはありません。</p>
-      <p class="muted small">受け取った日時：<span id="used-at"></span></p>
-      <div class="card-box hidden" id="card-box">
-        <p><b>吉祥寺はしごパスポートに来店スタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じパスポートに押されます。</p>
-        <a id="card-open" class="pass-mini" href="#"></a>
-        <a id="card-line" class="btn line" href="#" target="_blank" rel="noopener">パスポートをLINEで自分に送る</a>
-        <p class="muted small">ブックマークしておくか、LINEで自分に送っておくと、いつでも見返せます。</p>
-        <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しいパスポートになります。続きを押したいときは、先にこのパスポートのリンクを開いてから、QRコードを読んでください。</p>
+      <!-- このスマホで押した人にだけ、スタンプとお礼を出す -->
+      <div id="used-mine">
+        <ul class="stamp-one" id="used-stamp"></ul>
+        <p class="greet serif" id="used-name"></p>
+        <p id="used-words" class="word-tags hidden"></p>
+        <p class="muted">これで完了です。お店の人に見せるものはありません。</p>
+        <p class="muted small">行ってきた日時：<span id="used-at"></span></p>
       </div>
+      <!-- 転送された人など、このスマホで押していない人 -->
+      <p id="used-other" class="hidden">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
+      <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
+      <div class="card-box hidden" id="card-box"></div>
     </section>
 
     <!-- 期限切れ・停止 -->
@@ -103,14 +103,14 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025m"></script>
-<script src="common.js?v=20261025m"></script>
+<script src="config.js?v=20261025o"></script>
+<script src="common.js?v=20261025o"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
   var letter = null;
   var at = S.param('at');          // お店のシールから来たときの店ID
-  var justPressed = false;        // このスマホで、いま「行ってきました」を押した
+  var justPressed = null;         // このスマホで、いま押したときのパスポートの様子（visit の結果）
 
   function $(id) { return document.getElementById(id); }
 
@@ -189,41 +189,58 @@
       form.classList.add('hidden');
     }
 
-    if (d.status === 'used') {
+    var mine = d.status === 'used' && (!!justPressed || S.pressedHere(d.id));
+    $('used-mine').classList.toggle('hidden', !mine);
+    $('used-other').classList.toggle('hidden', d.status !== 'used' || mine);
+    if (d.status === 'used' && mine) {
       $('used-name').textContent = (name ? name + '、' : '') + 'ありがとうございました';
       $('used-at').textContent = d.usedAt;
       $('used-stamp').innerHTML = S.stampHtml({ shop: d.shop.name, from: d.from, date: d.usedAt, words: d.words }, 0);
       $('used-words').innerHTML = (d.words || []).map(function (w) { return '<span>' + S.wordIcon(w) + S.esc(w) + '</span>'; }).join('');
       $('used-words').classList.toggle('hidden', !(d.words || []).length);
     }
-    // 台紙の案内は、このスマホで押したときだけ（転送された人には出さない）
-    var card = S.myCard();
-    var pressedHere = d.status === 'used' && card && justPressed;
-    $('card-box').classList.toggle('hidden', !pressedHere);
-    $('used').classList.toggle('just-pressed', !!pressedHere);
-    if (pressedHere) {
-      $('card-open').href = S.cardUrl(card);
-      fillPassMini($('card-open'), card);
-      $('card-line').href = S.lineShareUrl('わたしの吉祥寺はしごパスポートです。\n' + S.cardUrl(card));
+    $('used').classList.toggle('just-pressed', !!justPressed);
+
+    // はしごパスポート：このスマホで押したときだけ（転送された人には出さない）
+    $('card-box').classList.add('hidden');
+    if (mine) {
+      if (justPressed) renderPassBox(justPressed, false);
+      else S.myPass().then(function (p) { renderPassBox(p, false); }).catch(function () {});
     }
+
     // 入り口は、パスポートがまだない人にも出す（開くと白紙のパスポート）
     var showBefore = unused && !atShop;
     $('mycard-before').classList.toggle('hidden', !showBefore);
     if (showBefore) {
-      $('mycard-before').href = S.cardUrl(card);
-      if (card) fillPassMini($('mycard-before'), card);
-      else $('mycard-before').innerHTML = S.passMiniHtml('blank');
+      $('mycard-before').innerHTML = S.passMiniHtml(null);
+      S.myPass().then(function (p) {
+        $('mycard-before').innerHTML = S.passMiniHtml(p);
+        $('mycard-before').href = S.cardUrl(p && p.issued ? p.id : '');
+      }).catch(function () {});
     }
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
+    if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は、いまは使えません。紹介してくれた人に、新しい紹介状を頼んでみてください。';
+    $('closed-state').classList.toggle('hidden', d.status !== 'stopped' && d.status !== 'expired');
     show('app');
   }
 
-  // 小さな表紙に、いまのスタンプの数を入れる（取れなければ数なしのまま）
-  function fillPassMini(el, card) {
-    el.innerHTML = S.passMiniHtml(null);
-    S.get({ action: 'card', card: card }).then(function (d) {
-      el.innerHTML = S.passMiniHtml((d.stamps || []).length);
-    }).catch(function () {});
+  // 押したあとのパスポート欄。未発行なら発行の欄、発行済みなら表紙（発行した直後は、とっておく案内も）
+  function renderPassBox(p, justIssued) {
+    var box = $('card-box');
+    if (!p) { box.classList.add('hidden'); return; }
+    var lead = '<p><b>吉祥寺はしごパスポートに来店スタンプを押しました。</b></p>';
+    var unsaved = S.keyIsSaved() ? '' :
+      '<p class="notice warn small">このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。</p>';
+    if (!p.issued) {
+      box.innerHTML = lead + unsaved + S.issueFormHtml();
+      S.bindIssueForm(box, letter ? letter.nickname : '', function (r) { renderPassBox(r, true); });
+    } else {
+      box.innerHTML = (justIssued ? '<p><b>パスポートを発行しました。</b></p>' : lead) +
+        '<a class="pass-mini" href="' + S.esc(S.cardUrl(p.id)) + '">' + S.passMiniHtml(p) + '</a>' +
+        (justIssued ? S.keepBoxHtml(p.id) : '') + unsaved;
+      S.bindKeepBox(box);
+    }
+    box.classList.remove('hidden');
   }
 
   function load(id) {
@@ -234,9 +251,11 @@
     var btn = this;
     btn.disabled = true;
     $('visit-err').textContent = '';
-    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords(), card: S.myCard() })
+    // 鍵は押す前にこのスマホで作っておく。応答が届かなくても、押し直せば同じ結果が返る
+    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords(), key: S.ensureKey() })
       .then(function (d) {
-        if (d.card) { S.rememberCard(d.card); justPressed = true; }
+        S.rememberLetter(d.id, d.shop.id, true);
+        justPressed = d.pass || null;
         render(d);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       })
