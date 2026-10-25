@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025d">
+<link rel="stylesheet" href="style.css?v=20261025e">
 </head>
 <body>
 <main class="wrap">
@@ -41,7 +41,7 @@
           <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店のスタンプが、あなた専用の「はしごパスポート」にたまっていきます。<span id="from-2"></span>にも、行ってきたことが伝わります。</p>
         </div>
       </details>
-      <p class="mycard-link hidden" id="mycard-before"><a href="#">はしごパスポートを見る</a></p>
+      <a class="pass-mini hidden" id="mycard-before" href="#"></a>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -68,7 +68,7 @@
       <p class="muted small">受け取った日時：<span id="used-at"></span></p>
       <div class="card-box hidden" id="card-box">
         <p><b>はしごパスポートにスタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じパスポートに押されます。</p>
-        <a id="card-open" class="btn primary" href="#">パスポートを見る</a>
+        <a id="card-open" class="pass-mini" href="#"></a>
         <a id="card-line" class="btn line" href="#" target="_blank" rel="noopener">パスポートをLINEで自分に送る</a>
         <p class="muted small">ブックマークしておくか、LINEで自分に送っておくと、いつでも見返せます。</p>
         <p class="muted small" id="other-browser">別のスマホやブラウザでQRコードを読むと、新しいパスポートになります。続きを押したいときは、先にこのパスポートのリンクを開いてから、QRコードを読んでください。</p>
@@ -84,8 +84,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025d"></script>
-<script src="common.js?v=20261025d"></script>
+<script src="config.js?v=20261025e"></script>
+<script src="common.js?v=20261025e"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -184,12 +184,25 @@
     $('used').classList.toggle('just-pressed', !!pressedHere);
     if (pressedHere) {
       $('card-open').href = S.cardUrl(card);
+      fillPassMini($('card-open'), card);
       $('card-line').href = S.lineShareUrl('わたしのはしごパスポートです。\n' + S.cardUrl(card));
     }
-    $('mycard-before').classList.toggle('hidden', !(unused && !atShop && card));
-    if (card) $('mycard-before').querySelector('a').href = S.cardUrl(card);
+    var showBefore = unused && !atShop && card;
+    $('mycard-before').classList.toggle('hidden', !showBefore);
+    if (showBefore) {
+      $('mycard-before').href = S.cardUrl(card);
+      fillPassMini($('mycard-before'), card);
+    }
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
     show('app');
+  }
+
+  // 小さな表紙に、いまのスタンプの数を入れる（取れなければ数なしのまま）
+  function fillPassMini(el, card) {
+    el.innerHTML = S.passMiniHtml(null);
+    S.get({ action: 'card', card: card }).then(function (d) {
+      el.innerHTML = S.passMiniHtml((d.stamps || []).length);
+    }).catch(function () {});
   }
 
   function load(id) {

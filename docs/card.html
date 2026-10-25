@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261025d">
+<link rel="stylesheet" href="style.css?v=20261025e">
 </head>
 <body>
 <main class="wrap">
@@ -17,9 +17,13 @@
   </div>
 
   <div id="app" class="hidden">
-    <section class="card daishi">
+    <section class="pass-cover">
+      <div id="emblem"></div>
       <h1 class="serif">はしごパスポート</h1>
-      <p class="muted" id="count"></p>
+      <p class="pass-en">HASHIGO PASSPORT</p>
+      <p class="pass-count" id="count"></p>
+    </section>
+    <section class="card daishi pass-page">
       <ul class="stamp-grid" id="grid"></ul>
       <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、ここにスタンプが押されます。</p>
     </section>
@@ -42,8 +46,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261025d"></script>
-<script src="common.js?v=20261025d"></script>
+<script src="config.js?v=20261025e"></script>
+<script src="common.js?v=20261025e"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -56,6 +60,7 @@
   S.get({ action: 'card', card: id }).then(function (d) {
     // 台紙のリンクから開いたら、このスマホの台紙として覚え直す
     S.rememberCard(id);
+    $('emblem').innerHTML = S.passEmblem();
     var stamps = d.stamps || [];
     var html = stamps.map(S.stampHtml).join('');
     // 押していない枠も並べて、台紙らしく見せる（6つ単位）

@@ -167,6 +167,22 @@
       '</li>';
   }
 
+  // はしごパスポートの紋章：丸の中にはしご
+  function passEmblem(cls) {
+    return '<svg class="' + (cls || 'pass-emblem') + '" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+      '<circle cx="24" cy="24" r="21"/><circle cx="24" cy="24" r="17.5" stroke-width="0.8"/>' +
+      '<path d="M18 11v26M30 11v26M18 16h12M18 22h12M18 28h12M18 34h12"/></svg>';
+  }
+
+  // 紹介状の画面から入る小さな表紙。count が分からないときは数を出さない
+  function passMiniHtml(count) {
+    var sub = count == null ? 'スタンプを見る' : count ? 'スタンプ ' + count + '個' : 'まだスタンプはありません';
+    return passEmblem() +
+      '<span class="pass-mini-text"><span class="pass-mini-title">はしごパスポート</span>' +
+      '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
+      '<span class="pass-mini-go" aria-hidden="true"></span>';
+  }
+
   function qrSvg(text) {
     var qr = window.qrcode(0, 'M');
     qr.addData(text);
@@ -188,6 +204,7 @@
     mapUrl: mapUrl, lineShareUrl: lineShareUrl, copyText: copyText,
     storeGet: storeGet, storeSet: storeSet, qrSvg: qrSvg, toast: toast,
     rememberedLetters: rememberedLetters, rememberLetter: rememberLetter,
-    myCard: myCard, rememberCard: rememberCard, cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml
+    myCard: myCard, rememberCard: rememberCard, cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml,
+    passEmblem: passEmblem, passMiniHtml: passMiniHtml
   };
 })();
