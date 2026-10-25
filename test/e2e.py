@@ -122,7 +122,7 @@ with sync_playwright() as p:
     check("上のヘッダー表記はない", page.locator("#app .eyebrow").count() == 0)
     check("営業時間・定休日・期限は出さない", all(w not in page.inner_text(".letter") for w in ["営業時間", "定休日", "まで有効"]))
     check("フッターに小さく by banzai", "by banzai" in page.inner_text(".foot"))
-    check("QRを読むと何が起きるかを説明", "あなた専用の「吉祥寺はしごパスポート」にたまっていきます。紹介元Aにも、行ってきたことが伝わります" in page.inner_text("#before"))
+    check("QRを読むと何が起きるかを説明", "あなた専用の「吉祥寺はしごパスポート」にたまっていきます。" in page.inner_text("#before") and "伝わります" not in page.inner_text("#before"))
     check("「お礼」という言葉は使わない", "お礼" not in page.inner_text("#before"))
     check("地図へのリンクは出る", page.locator("#map").is_visible())
     page.goto(link)
@@ -160,7 +160,7 @@ with sync_playwright() as p:
     check("台紙のリンクは長いIDつき", "card.html?c=C" in card_href and "openExternalBrowser=1" in card_href)
     card_id = urllib.parse.parse_qs(urllib.parse.urlparse(card_href).query)["c"][0]
     check("台紙をLINEで自分に送れる", card_id in urllib.parse.unquote(page.get_attribute("#card-line", "href")))
-    check("押したあとは、これで完了と分かる", "これで完了です" in page.inner_text("#used") and "紹介元Aへ「行ってきました」をお知らせします" in page.inner_text("#used"))
+    check("押したあとは、これで完了と分かる", "これで完了です" in page.inner_text("#used") and "お知らせします" not in page.inner_text("#used"))
     row = [r for r in letters() if r[0] == letter_id][0]
     check("記録に言葉と方法が残る", row[13] == "また行きたい" and row[14] == "シール")
     check("記録に台紙ID", row[15] == card_id)

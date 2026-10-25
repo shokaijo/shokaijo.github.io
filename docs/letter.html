@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025l">
+<link rel="stylesheet" href="style.css?v=20261025m">
 </head>
 <body>
 <main class="wrap">
@@ -57,7 +57,7 @@
           <span class="howto-sub">店内のQRコードを読むと、来店スタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。<span id="from-2"></span>にも、行ってきたことが伝わります。</p>
+          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
         </div>
       </details>
       <a class="pass-mini hidden" id="mycard-before" href="#"></a>
@@ -75,7 +75,7 @@
       <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
       <p class="err" id="visit-err" role="alert"></p>
       <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
-      <p class="muted">選んだ言葉も、一緒に<span class="from-name"></span>にお知らせします。</p>
+      <p class="muted">選んだ言葉は、スタンプと一緒にパスポートに残ります。</p>
     </div>
 
     <!-- 3. 押したあと -->
@@ -83,7 +83,7 @@
       <ul class="stamp-one" id="used-stamp"></ul>
       <p class="greet serif" id="used-name"></p>
       <p id="used-words" class="word-tags hidden"></p>
-      <p class="muted"><span class="from-name"></span>へ「行ってきました」をお知らせします。これで完了です。お店の人に見せるものはありません。</p>
+      <p class="muted">これで完了です。お店の人に見せるものはありません。</p>
       <p class="muted small">受け取った日時：<span id="used-at"></span></p>
       <div class="card-box hidden" id="card-box">
         <p><b>吉祥寺はしごパスポートに来店スタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じパスポートに押されます。</p>
@@ -103,8 +103,8 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025l"></script>
-<script src="common.js?v=20261025l"></script>
+<script src="config.js?v=20261025m"></script>
+<script src="common.js?v=20261025m"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -154,7 +154,6 @@
     $('addressee').previousElementSibling.classList.toggle('hidden', !name);
     $('addressee').classList.toggle('hidden', !name);
     $('from').textContent = d.from;
-    $('from-2').textContent = d.from;
     $('from-3').textContent = d.from;
     Array.prototype.forEach.call(document.querySelectorAll('.from-name'), function (el) { el.textContent = d.from; });
     $('shop-name').textContent = d.shop.name;
