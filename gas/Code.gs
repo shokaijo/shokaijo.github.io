@@ -8,6 +8,9 @@
  *   紹介元  … 紹介元ごとに1行。有効を FALSE にすると、そのリンクは止まる
  *   紹介状      … 受け取った人がリンクを開くたびに1行できる
  *   集計        … 紹介元ごと・店ごとの数（式で自動）
+ *
+ * 台紙（スタンプ）は別のシートを持たない。紹介状の行の「台紙ID」が同じものを集めると、その人の台紙になる。
+ * 台紙IDは推測できない長さにして、URLを知っている人だけが見られるようにする。名前や連絡先は持たない。
  */
 
 var SHEET = {
@@ -24,7 +27,7 @@ var HEAD = {
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '宛名', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
-            'ひとこと', '記録の方法']
+            'ひとこと', '記録の方法', '台紙ID']
 };
 
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
@@ -43,6 +46,7 @@ function doGet(e) {
   return respond_(function () {
     if (p.action === 'referrer') return getReferrer_(p.r);
     if (p.action === 'letter') return getLetter_(p.id);
+    if (p.action === 'card') return getCard_(p.c);
     throw userError_('unknown_action');
   });
 }
@@ -56,7 +60,7 @@ function doPost(e) {
   }
   return respond_(function () {
     if (body.action === 'issue') return withLock_(function () { return issueLetter_(body.r, body.s, body.nickname, body.honorific); });
-    if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words); });
+    if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words, body.card); });
     throw userError_('unknown_action');
   });
 }
@@ -116,6 +120,26 @@ function getLetter_(letterId) {
   return publicLetter_(hit.row);
 }
 
+/** 台紙：その台紙IDで押したスタンプを、古い順に並べる */
+function getCard_(cardId) {
+  if (!isCardId_(cardId)) throw userError_('card_not_found');
+  var stamps = readTable_(SHEET.LETTERS, HEAD.LETTERS)
+    .filter(function (r) { return String(r['台紙ID']) === cardId && r['状態'] === STATUS.USED; })
+    .map(function (r) {
+      var shop = findShop_(r['行き先の店ID']);
+      return {
+        shop: shop ? String(shop['店名']) : String(r['行き先']),
+        from: String(r['紹介元']),
+        date: formatDate_(toDate_(r['使用日時'])),
+        t: (toDate_(r['使用日時']) || new Date(0)).getTime(),
+        words: r['ひとこと'] ? String(r['ひとこと']).split('、') : []
+      };
+    })
+    .sort(function (a, b) { return a.t - b.t; });
+  stamps.forEach(function (x) { delete x.t; });
+  return { stamps: stamps };
+}
+
 /* ------------------------------------------------------------------ */
 /* 書き込み                                                            */
 /* ------------------------------------------------------------------ */
@@ -165,7 +189,7 @@ function issueLetter_(refId, shopId, nickname, honorific) {
  * at はお店のシールから来たときの店ID（紹介状の画面から押したときは空）。
  * 特典がないので来店を厳しくは確かめない。シールの店と行き先が違うときだけ止める。
  */
-function visit_(letterId, atShopId, words) {
+function visit_(letterId, atShopId, words, cardId) {
   var hit = findLetter_(letterId);
   if (!hit) throw userError_('letter_not_found');
   var state = effectiveStatus_(hit.row);
@@ -178,8 +202,13 @@ function visit_(letterId, atShopId, words) {
     return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
   });
 
+  // スタンプは、お店のQRコードから押したときだけ。台紙がまだなければ、ここで作る
+  var card = '';
+  if (at) card = isCardId_(cardId) ? cardId : newCardId_();
+
   var now = new Date();
   var patch = {
+    '台紙ID': card,
     '状態': STATUS.USED,
     '使用日時': now,
     'ひとこと': picked.join('、'),
@@ -187,7 +216,10 @@ function visit_(letterId, atShopId, words) {
   };
   setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, patch);
   Object.keys(patch).forEach(function (k) { hit.row[k] = patch[k]; });
-  return publicLetter_(hit.row);
+  var out = publicLetter_(hit.row);
+  // 台紙IDは、押した本人にだけ返す（紹介状を開いただけの人には見せない）
+  out.card = card;
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -267,6 +299,7 @@ function setup() {
   sheet_(SHEET.LETTERS).getRange('F:G').setNumberFormat('yyyy/mm/dd hh:mm');
   sheet_(SHEET.LETTERS).getRange('K:K').setNumberFormat('yyyy/mm/dd hh:mm');
   sheet_(SHEET.LETTERS).getRange('M:M').setNumberFormat('yyyy/mm/dd hh:mm');
+  sheet_(SHEET.LETTERS).getRange('P:P').setNumberFormat('@');
 
   buildSummary_();
 
@@ -513,6 +546,15 @@ function isTrue_(v) {
 
 function newId_(prefix) {
   return prefix + Utilities.getUuid().replace(/-/g, '').slice(0, 12);
+}
+
+/** 台紙ID：C ＋ 24桁。推測されないよう、紹介状IDより長くする */
+function newCardId_() {
+  return 'C' + (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').slice(0, 24);
+}
+
+function isCardId_(v) {
+  return /^C[0-9a-f]{24}$/.test(String(v || ''));
 }
 
 function randomCode_() {

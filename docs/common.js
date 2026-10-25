@@ -7,6 +7,7 @@
     own_shop: '自分のお店への紹介状は作れません。',
     wrong_shop: 'このシールは、紹介状の行き先とは別のお店のものです。',
     letter_not_found: 'この紹介状は見つかりませんでした。',
+    card_not_found: 'この台紙は見つかりませんでした。リンクが途中で切れていないか確かめてください。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
     letter_stopped: 'この紹介状は、いまは使えません。',
@@ -122,6 +123,50 @@
     storeSet(LETTERS_KEY, JSON.stringify(list.slice(0, 20)));
   }
 
+  // 自分の台紙（スタンプ）のID。押したときと、台紙のリンクを開いたときに覚え直す
+  var CARD_KEY = 'shokaijo:card';
+  function myCard() {
+    var v = storeGet(CARD_KEY) || '';
+    return /^C[0-9a-f]{24}$/.test(v) ? v : '';
+  }
+  function rememberCard(id) {
+    if (/^C[0-9a-f]{24}$/.test(id || '')) storeSet(CARD_KEY, id);
+  }
+  function cardUrl(id) {
+    var u = new URL('card.html', location.href);
+    u.search = '?c=' + encodeURIComponent(id) + '&openExternalBrowser=1';
+    return u.toString();
+  }
+
+  // 選べる言葉は決まっているので、台紙ではアイコンで見せる
+  var ICON_PATHS = {
+    'ありがとう': '<path d="M12 20s-7-4.4-7-9.6A4 4 0 0 1 12 8a4 4 0 0 1 7 2.4C19 15.6 12 20 12 20z"/>',
+    '楽しかった': '<circle cx="12" cy="12" r="8"/><path d="M8.5 13.5a4 4 0 0 0 7 0"/><path d="M9.5 9.8v.4M14.5 9.8v.4"/>',
+    'また行きたい': '<path d="M5 12a7 7 0 0 1 12-4.9L19 9"/><path d="M19 4.5V9h-4.5"/><path d="M19 12a7 7 0 0 1-12 4.9L5 15"/><path d="M5 19.5V15h4.5"/>'
+  };
+  function wordIcon(w) {
+    var d = ICON_PATHS[w];
+    if (!d) return '';
+    return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + esc(w) + '"><title>' + esc(w) + '</title>' + d + '</svg>';
+  }
+
+  // スタンプ1つ分。店名・行った日・誰の紹介か・選んだ言葉（アイコン）
+  function stampHtml(st, i) {
+    var n = Array.from(st.shop || '').length;
+    var size = n <= 5 ? 'l' : n <= 9 ? 'm' : 's';
+    var tilt = [-7, 4, -3, 6, -5, 2][(i || 0) % 6];
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(st.date || '');
+    var date = m ? m[1] + '.' + Number(m[2]) + '.' + Number(m[3]) : '';
+    var icons = (st.words || []).map(wordIcon).join('');
+    return '<li class="stamp-cell">' +
+      '<div class="hanko" style="transform:rotate(' + tilt + 'deg)">' +
+      '<span class="hanko-shop ' + size + '">' + esc(st.shop) + '</span>' +
+      '<span class="hanko-date">' + esc(date) + '</span></div>' +
+      '<p class="stamp-from">' + esc(st.from) + 'の紹介</p>' +
+      (icons ? '<p class="stamp-words">' + icons + '</p>' : '') +
+      '</li>';
+  }
+
   function qrSvg(text) {
     var qr = window.qrcode(0, 'M');
     qr.addData(text);
@@ -142,6 +187,7 @@
     get: get, post: post, message: message, param: param, esc: esc, jpDate: jpDate,
     mapUrl: mapUrl, lineShareUrl: lineShareUrl, copyText: copyText,
     storeGet: storeGet, storeSet: storeSet, qrSvg: qrSvg, toast: toast,
-    rememberedLetters: rememberedLetters, rememberLetter: rememberLetter
+    rememberedLetters: rememberedLetters, rememberLetter: rememberLetter,
+    myCard: myCard, rememberCard: rememberCard, cardUrl: cardUrl, wordIcon: wordIcon, stampHtml: stampHtml
   };
 })();

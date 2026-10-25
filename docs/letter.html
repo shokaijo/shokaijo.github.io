@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261025">
+<link rel="stylesheet" href="style.css?v=20261025b">
 </head>
 <body>
 <main class="wrap">
@@ -35,12 +35,13 @@
       <details class="card howto" id="howto">
         <summary>
           <span class="howto-title">お会計のときに</span>
-          <span class="howto-sub">店内のQRコードを読むと、<span id="from-2"></span>に「行ってきました」をお知らせします</span>
+          <span class="howto-sub">店内のQRコードを読むと、あなたの台紙に<span id="shop-2"></span>のスタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読んでください。「行ってきました」のボタンが出ます。</p>
+          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読んでください。「行ってきました」を押すと、<span id="from-2"></span>にお知らせして、あなたの台紙にお店のスタンプを押します。</p>
         </div>
       </details>
+      <p class="mycard-link hidden" id="mycard-before"><a href="#">わたしの台紙を見る</a></p>
     </div>
 
     <!-- 2. 帰り際：シールから開いたとき -->
@@ -60,11 +61,17 @@
 
     <!-- 3. 押したあと -->
     <section id="used" class="card stamp hidden" aria-live="polite">
-      <div class="seal">御礼</div>
+      <ul class="stamp-one" id="used-stamp"></ul>
       <p class="greet serif" id="used-name"></p>
-      <p id="used-words" class="used-words hidden"></p>
+      <p id="used-words" class="word-tags hidden"></p>
       <p class="muted"><span class="from-name"></span>へ「行ってきました」をお知らせします。これで完了です。お店の人に見せるものはありません。</p>
       <p class="muted small">受け取った日時：<span id="used-at"></span></p>
+      <div class="card-box hidden" id="card-box">
+        <p><b>あなたの台紙にスタンプを押しました。</b>次に紹介状で行ったお店のスタンプも、このスマホなら同じ台紙に押されます。</p>
+        <a id="card-open" class="btn primary" href="#">台紙を見る</a>
+        <a id="card-line" class="btn line" href="#" target="_blank" rel="noopener">台紙をLINEで自分に送る</a>
+        <p class="muted small">ブックマークしておくか、LINEで自分に送っておくと、いつでも見返せます。</p>
+      </div>
     </section>
 
     <!-- 期限切れ・停止 -->
@@ -76,13 +83,14 @@
   <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261025"></script>
-<script src="common.js?v=20261025"></script>
+<script src="config.js?v=20261025b"></script>
+<script src="common.js?v=20261025b"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
   var letter = null;
   var at = S.param('at');          // お店のシールから来たときの店ID
+  var justPressed = false;        // このスマホで、いま「行ってきました」を押した
 
   function $(id) { return document.getElementById(id); }
 
@@ -111,7 +119,7 @@
     (choices || []).forEach(function (w) {
       var l = document.createElement('label');
       l.className = 'chip';
-      l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.esc(w) + '</span>';
+      l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.wordIcon(w) + S.esc(w) + '</span>';
       l.querySelector('input').checked = keep.indexOf(w) >= 0;
       box.appendChild(l);
     });
@@ -127,6 +135,7 @@
     $('from').textContent = d.from;
     $('from-2').textContent = d.from;
     $('from-3').textContent = d.from;
+    $('shop-2').textContent = d.shop.name;
     Array.prototype.forEach.call(document.querySelectorAll('.from-name'), function (el) { el.textContent = d.from; });
     $('shop-name').textContent = d.shop.name;
     $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
@@ -164,10 +173,21 @@
     if (d.status === 'used') {
       $('used-name').textContent = (name ? name + '、' : '') + 'ありがとうございました';
       $('used-at').textContent = d.usedAt;
-      var w = (d.words || []).join('・');
-      $('used-words').textContent = w ? '「' + w + '」' : '';
-      $('used-words').classList.toggle('hidden', !w);
+      $('used-stamp').innerHTML = S.stampHtml({ shop: d.shop.name, from: d.from, date: d.usedAt, words: d.words }, 0);
+      $('used-words').innerHTML = (d.words || []).map(function (w) { return '<span>' + S.wordIcon(w) + S.esc(w) + '</span>'; }).join('');
+      $('used-words').classList.toggle('hidden', !(d.words || []).length);
     }
+    // 台紙の案内は、このスマホで押したときだけ（転送された人には出さない）
+    var card = S.myCard();
+    var pressedHere = d.status === 'used' && card && justPressed;
+    $('card-box').classList.toggle('hidden', !pressedHere);
+    $('used').classList.toggle('just-pressed', !!pressedHere);
+    if (pressedHere) {
+      $('card-open').href = S.cardUrl(card);
+      $('card-line').href = S.lineShareUrl('行きつけの紹介状の台紙です。\n' + S.cardUrl(card));
+    }
+    $('mycard-before').classList.toggle('hidden', !(unused && !atShop && card));
+    if (card) $('mycard-before').querySelector('a').href = S.cardUrl(card);
     if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
     show('app');
   }
@@ -180,8 +200,12 @@
     var btn = this;
     btn.disabled = true;
     $('visit-err').textContent = '';
-    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords() })
-      .then(function (d) { render(d); window.scrollTo({ top: 0, behavior: 'smooth' }); })
+    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords(), card: S.myCard() })
+      .then(function (d) {
+        if (d.card) { S.rememberCard(d.card); justPressed = true; }
+        render(d);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      })
       .catch(function (err) {
         $('visit-err').textContent = S.message(err);
         if (err.message !== 'wrong_shop' && err.message !== 'network') load(letter.id).catch(function () {});

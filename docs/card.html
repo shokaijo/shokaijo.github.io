@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>わたしの台紙</title>
+<link rel="stylesheet" href="style.css?v=20261025b">
+</head>
+<body>
+<main class="wrap">
+  <div id="loading" class="loading">台紙を開いています…</div>
+
+  <div id="error" class="hidden">
+    <div class="card"><p id="error-text"></p></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <section class="card daishi">
+      <h1 class="serif">わたしの台紙</h1>
+      <p class="muted" id="count"></p>
+      <ul class="stamp-grid" id="grid"></ul>
+      <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、ここにスタンプが押されます。</p>
+    </section>
+
+    <details class="card howto" id="keep">
+      <summary>
+        <span class="howto-title">この台紙をとっておく</span>
+        <span class="howto-sub">ブックマークするか、LINEで自分に送っておくと、いつでも見返せます</span>
+      </summary>
+      <div class="howto-body">
+        <a id="line" class="btn line" href="#" target="_blank" rel="noopener">LINEで自分に送る</a>
+        <button id="copy" class="btn" type="button">リンクをコピー</button>
+        <p class="muted small">このリンクを知っている人は、だれでもこの台紙を見られます。ほかの人には送らないでください。</p>
+      </div>
+    </details>
+  </div>
+
+  <p class="foot">行きつけの紹介状 by banzai（試験運用中）</p>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js?v=20261025b"></script>
+<script src="common.js?v=20261025b"></script>
+<script>
+(function () {
+  var S = window.Shokaijo;
+  var id = S.param('c');
+  function $(x) { return document.getElementById(x); }
+  function show(x) {
+    ['loading', 'error', 'app'].forEach(function (k) { $(k).classList.toggle('hidden', k !== x); });
+  }
+
+  S.get({ action: 'card', c: id }).then(function (d) {
+    // 台紙のリンクから開いたら、このスマホの台紙として覚え直す
+    S.rememberCard(id);
+    var stamps = d.stamps || [];
+    var html = stamps.map(S.stampHtml).join('');
+    // 押していない枠も並べて、台紙らしく見せる（6つ単位）
+    var slots = Math.max(6, Math.ceil((stamps.length + 1) / 6) * 6) - stamps.length;
+    for (var i = 0; i < slots; i++) html += '<li class="stamp-cell empty" aria-hidden="true"><div class="hanko"></div></li>';
+    $('grid').innerHTML = html;
+    $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
+    $('empty-note').hidden = stamps.length > 0;
+    var url = S.cardUrl(id);
+    $('line').href = S.lineShareUrl('行きつけの紹介状の台紙です。\n' + url);
+    $('copy').addEventListener('click', function () {
+      S.copyText(url).then(function () { S.toast('リンクをコピーしました'); }, function () { S.toast('コピーできませんでした'); });
+    });
+    show('app');
+  }).catch(function (err) {
+    $('error-text').textContent = S.message(err);
+    show('error');
+  });
+})();
+</script>
+</body>
+</html>

@@ -266,4 +266,40 @@ test('自分の店IDが空の紹介元（常連）は、全部の店が出る', 
   assert.strictEqual(env.get({ action: 'referrer', r }).data.shops.length, 3);
 });
 
+test('台紙：QRコードから押すと台紙ができ、同じ台紙に2つ目が押される', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const a = issue(env, r, 'shop-b').data.id;
+  const b = issue(env, r, 'shop-c', 'ケン', 'さん').data.id;
+  // 紹介状を開いただけでは台紙IDは出ない
+  assert.strictEqual(env.get({ action: 'letter', id: a }).data.card, undefined);
+  const v1 = env.post({ action: 'visit', id: a, at: 'shop-b', words: ['ありがとう'] });
+  assert.match(v1.data.card, /^C[0-9a-f]{24}$/);
+  const v2 = env.post({ action: 'visit', id: b, at: 'shop-c', words: [], card: v1.data.card });
+  assert.strictEqual(v2.data.card, v1.data.card);
+  // 使用済みの紹介状を開き直しても台紙IDは出ない
+  assert.strictEqual(env.get({ action: 'letter', id: a }).data.card, undefined);
+  const card = env.get({ action: 'card', c: v1.data.card }).data;
+  assert.deepStrictEqual(card.stamps.map((x) => x.shop), ['見本の店B', '見本の店C']);
+  assert.strictEqual(card.stamps[0].from, '紹介元A');
+  assert.deepStrictEqual(card.stamps[0].words, ['ありがとう']);
+  assert.match(card.stamps[0].date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.strictEqual(card.stamps[0].nickname, undefined);
+});
+
+test('台紙：紹介状の画面から押したときはスタンプを押さない。おかしな台紙IDは作り直す', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const a = issue(env, r, 'shop-b').data.id;
+  const v = env.post({ action: 'visit', id: a, words: [], card: 'C' + '0'.repeat(24) });
+  assert.strictEqual(v.data.card, '');
+  assert.strictEqual(letterRow(env, a)['台紙ID'], '');
+  assert.strictEqual(env.get({ action: 'card', c: 'C' + '0'.repeat(24) }).data.stamps.length, 0);
+  const b = issue(env, r, 'shop-c').data.id;
+  const v2 = env.post({ action: 'visit', id: b, at: 'shop-c', card: 'Cxyz' });
+  assert.match(v2.data.card, /^C[0-9a-f]{24}$/);
+  assert.deepStrictEqual(env.get({ action: 'card', c: 'Cxyz' }), { ok: false, error: 'card_not_found' });
+  assert.deepStrictEqual(env.get({ action: 'card', c: '' }), { ok: false, error: 'card_not_found' });
+});
+
 console.log(`\n${passed} 件 成功`);

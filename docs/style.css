@@ -350,3 +350,49 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 
 .muted.small { font-size: 12px; }
 .letter.compact .to { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+
+/* 台紙とスタンプ */
+.icon { width: 18px; height: 18px; vertical-align: -3px; }
+.daishi h1 { margin-bottom: 2px; }
+.stamp-grid {
+  list-style: none; margin: 14px 0 6px; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px;
+}
+.stamp-cell { text-align: center; min-width: 0; }
+.hanko {
+  width: 86px; height: 86px; margin: 0 auto 6px;
+  border: 2.5px solid var(--accent); border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--accent); padding: 8px;
+  font-family: "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP", serif;
+  box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.hanko-shop { font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.hanko-shop.l { font-size: 16px; }
+.hanko-shop.m { font-size: 13px; }
+.hanko-shop.s { font-size: 10.5px; }
+.hanko-date { font-size: 10px; margin-top: 3px; letter-spacing: 0.04em; font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; }
+.stamp-cell.empty .hanko { border: 1.5px dashed var(--line); box-shadow: none; }
+.stamp-from { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.4; overflow-wrap: anywhere; }
+.stamp-words { margin: 2px 0 0; color: var(--accent); display: flex; justify-content: center; gap: 4px; }
+.stamp-words .icon { width: 16px; height: 16px; }
+
+/* 押したあと：押されたスタンプを大きめに */
+.stamp-one { list-style: none; margin: 0 0 12px; padding: 0; }
+.stamp-one .hanko { width: 112px; height: 112px; }
+.stamp-one .hanko-shop.l { font-size: 20px; }
+.stamp-one .hanko-shop.m { font-size: 16px; }
+.stamp-one .hanko-shop.s { font-size: 13px; }
+.stamp-one .hanko-date { font-size: 12px; }
+.stamp-one .stamp-from { display: none; }
+.stamp-one .stamp-words { display: none; }
+.word-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 10px; }
+.word-tags span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; background: var(--soft); color: var(--accent); font-size: 14px; }
+.chip span .icon { width: 16px; height: 16px; margin-right: 3px; vertical-align: -3px; }
+.card-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); text-align: left; }
+.card-box p { font-size: 14px; }
+.mycard-link { text-align: center; font-size: 14px; margin: 4px 0 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .just-pressed .hanko { animation: press 0.45s ease-out both; }
+  @keyframes press { 0% { transform: scale(1.6) rotate(-7deg); opacity: 0; } 70% { transform: scale(0.96) rotate(-7deg); opacity: 1; } 100% { transform: scale(1) rotate(-7deg); } }
+}
