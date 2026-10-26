@@ -39,7 +39,7 @@
     background: #fffbf3;
   }
   .card .qr { width: 34mm; height: 34mm; flex: 0 0 auto; }
-  .card .name { font-size: 17pt; line-height: 1.25; margin: 0; font-weight: 600; }
+  .card .name { font-size: 17pt; line-height: 1.25; margin: 0 0 4mm; font-weight: 600; }
   .card .name small { display: block; font-size: 11pt; font-weight: 500; }
   .card .by { font-size: 8pt; letter-spacing: 0.12em; color: #6e655b; margin: 1.5mm 0 4mm; }
   .card .how { font-size: 7.5pt; line-height: 1.6; margin: 0; }
@@ -85,13 +85,13 @@
 
   function card(svg) {
     return '<div class="card"><div class="qr">' + svg + '</div><div>' +
-      '<p class="name serif"><small>行きつけの</small>紹介状</p><p class="by">by banzai</p>' +
+      '<p class="name serif"><small>行きつけの</small>紹介状</p>' +
       '<p class="how">紹介状をお持ちの方は、<br>スマホのカメラで<br>読み取ってください。</p></div></div>';
   }
 
   function round(svg) {
     return '<div class="round"><div class="qr">' + svg + '</div>' +
-      '<p class="name serif"><small>行きつけの</small>紹介状</p><p class="by">by banzai</p></div>';
+      '<p class="name serif"><small>行きつけの</small>紹介状</p></div>';
   }
 
   var html = ids.map(function (id) {

@@ -127,7 +127,7 @@ with sync_playwright() as p:
     page.screenshot(path=str(out / "3b_letter_howto_open.png"), full_page=True)
     check("上のヘッダー表記はない", page.locator("#app .eyebrow").count() == 0)
     check("営業時間・定休日・期限は出さない", all(w not in page.inner_text(".letter") for w in ["営業時間", "定休日", "まで有効"]))
-    check("フッターに小さく by banzai", "by banzai" in page.inner_text(".foot"))
+    check("フッターに by banzai は出さない", "banzai" not in page.inner_text(".foot") and "試験運用中" in page.inner_text(".foot"))
     check("試験運用中のご注意は、たたんで置く", page.locator("#notes").is_visible() and page.locator("#notes li").first.is_hidden())
     page.click("#notes summary")
     check("ご注意に、予告なく消すことと連絡先", "予告なく消すことがあります" in page.inner_text("#notes") and "貝瀬（かいせ）" in page.inner_text("#notes"))
