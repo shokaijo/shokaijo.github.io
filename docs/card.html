@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-i18n>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>吉祥寺はしごパスポート</title>
-<link rel="stylesheet" href="style.css?v=20261027d">
+<title>吉祥寺はしごパスポート / Kichijoji Hashigo Passport</title>
+<link rel="stylesheet" href="style.css?v=20261027e">
 </head>
 <body>
 <main class="wrap">
-  <div id="loading" class="loading">パスポートを開いています…</div>
+  <div id="loading" class="loading" data-en="Opening your passport…">パスポートを開いています…</div>
 
   <div id="error" class="hidden">
     <div class="card"><p id="error-text"></p></div>
@@ -19,9 +19,9 @@
   <!-- 自分用リンクを開いたが、このブラウザに別のパスポートがあるとき -->
   <section id="switch" class="card hidden">
     <p id="switch-text"></p>
-    <button id="switch-yes" class="btn primary" type="button">このリンクのパスポートに切り替える</button>
-    <button id="switch-no" class="btn" type="button">いまのパスポートのままにする</button>
-    <p class="muted small">切り替えても、いまのパスポートのスタンプは消えません。このスマホの中に控えを残します。</p>
+    <button id="switch-yes" class="btn primary" type="button" data-en="Switch to this passport">このリンクのパスポートに切り替える</button>
+    <button id="switch-no" class="btn" type="button" data-en="Keep my current passport">いまのパスポートのままにする</button>
+    <p class="muted small" data-en="Switching will not erase the stamps on your current passport. A copy stays on this phone.">切り替えても、いまのパスポートのスタンプは消えません。このスマホの中に控えを残します。</p>
   </section>
 
   <div id="app" class="hidden">
@@ -35,27 +35,27 @@
     </section>
     <section class="card daishi pass-page">
       <ul class="stamp-grid" id="grid"></ul>
-      <p class="muted small" id="empty-note" hidden>紹介状を持ってお店に行き、店内のQRコードを読むと、最初のスタンプが押されます。</p>
+      <p class="muted small" id="empty-note" hidden data-en="Take your letter to the shop and scan the QR code inside to get your first stamp.">紹介状を持ってお店に行き、店内のQRコードを読むと、最初のスタンプが押されます。</p>
     </section>
     <section class="card hidden" id="issue-box"></section>
-    <div class="notice hidden" id="retry"><p>このスマホのパスポートかどうか、通信の都合で確かめられませんでした。</p><button class="btn small" type="button" id="retry-btn">読み込み直す</button></div>
-    <p class="notice view-only hidden" id="view-only">このパスポートは見るだけです。このスマホでスタンプを押すと、あなた自身のパスポートになります。</p>
+    <div class="notice hidden" id="retry"><p data-en="We could not check whether this is your passport because of a connection problem.">このスマホのパスポートかどうか、通信の都合で確かめられませんでした。</p><button class="btn small" type="button" id="retry-btn" data-en="Reload">読み込み直す</button></div>
+    <p class="notice view-only hidden" id="view-only" data-en="This passport is view-only. Get a stamp on this phone to start a passport of your own.">このパスポートは見るだけです。このスマホでスタンプを押すと、あなた自身のパスポートになります。</p>
 
     <details class="card howto hidden" id="keep">
       <summary>
-        <span class="howto-title">このパスポートをとっておく</span>
-        <span class="howto-sub">自分用の鍵つきリンクがあれば、スマホを替えても続きから押せます</span>
+        <span class="howto-title" data-en="Keep this passport">このパスポートをとっておく</span>
+        <span class="howto-sub" data-en="With your private link, you can carry on even after changing phones">自分用の鍵つきリンクがあれば、スマホを替えても続きから押せます</span>
       </summary>
       <div class="howto-body" id="keep-body"></div>
     </details>
   </div>
 
-  <p class="foot">行きつけの紹介状（試験運用中）</p>
+  <p class="foot" data-en="行きつけの紹介状 · Letter of Introduction (trial)">行きつけの紹介状（試験運用中）</p>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027d"></script>
-<script src="common.js?v=20261027d"></script>
+<script src="config.js?v=20261027e"></script>
+<script src="common.js?v=20261027e"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -76,7 +76,7 @@
     var slots = Math.max(6, Math.ceil((stamps.length + 1) / 6) * 6) - stamps.length;
     for (var i = 0; i < slots; i++) html += '<li class="stamp-cell empty" aria-hidden="true"><div class="hanko"></div></li>';
     $('grid').innerHTML = html;
-    $('count').textContent = stamps.length ? 'スタンプ ' + stamps.length + '個' : 'まだスタンプはありません';
+    $('count').textContent = stamps.length ? S.stampCount(stamps.length) : S.L('まだスタンプはありません', 'No stamps yet');
     $('empty-note').hidden = stamps.length > 0;
     $('view-only').classList.toggle('hidden', own || unsure || !p.issued);
     $('retry').classList.toggle('hidden', !unsure);
@@ -85,14 +85,14 @@
     $('keep').classList.toggle('hidden', !keep);
     if (keep) {
       $('keep-body').innerHTML = S.keepBoxHtml(p.id) +
-        '<details class="rename"><summary>ニックネームを変える</summary><div id="rename-box"></div></details>';
+        '<details class="rename"><summary>' + S.L('ニックネームを変える', 'Change nickname') + '</summary><div id="rename-box"></div></details>';
       S.bindKeepBox($('keep-body'), p.id);
       // 名前を変えられるのは、鍵を持っているこのスマホだけ
       $('rename-box').innerHTML = S.issueFormHtml('rename');
       S.bindIssueForm($('rename-box'), p.name, function (r) {
         draw(r, true);
         $('keep').open = true;
-        S.toast('ニックネームを変えました');
+        S.toast(S.L('ニックネームを変えました', 'Nickname changed'));
       });
     }
     // 未発行で、スタンプがある：ここで発行できる
@@ -138,12 +138,14 @@
   if (h.state === 'conflict') {
     $('loading').classList.add('hidden');
     S.myPass().then(function (cur) {
-      var desc = cur && cur.issued ? '「' + cur.name + '」・スタンプ ' + cur.stamps.length + '個' : 'スタンプ ' + (cur ? cur.stamps.length : 0) + '個';
+      var n = S.stampCount(cur ? cur.stamps.length : 0);
+      var desc = cur && cur.issued ? S.L('「' + cur.name + '」・', '"' + cur.name + '", ') + n : n;
       if (cur && !cur.issued && !cur.stamps.length) { S.adoptKey(h.key); dropHash(); load(); return; }
-      $('switch-text').textContent = 'このスマホには、別のパスポート（' + desc + '）があります。この自分用リンクのパスポートに切り替えますか？';
+      $('switch-text').textContent = S.L('このスマホには、別のパスポート（' + desc + '）があります。この自分用リンクのパスポートに切り替えますか？',
+        'This phone already has another passport (' + desc + '). Switch to the passport in this private link?');
       $('switch').classList.remove('hidden');
     }).catch(function () {
-      $('switch-text').textContent = 'このスマホには、別のパスポートがあります。この自分用リンクのパスポートに切り替えますか？';
+      $('switch-text').textContent = S.L('このスマホには、別のパスポートがあります。この自分用リンクのパスポートに切り替えますか？', 'This phone already has another passport. Switch to the passport in this private link?');
       $('switch').classList.remove('hidden');
     });
     $('switch-yes').addEventListener('click', function () {
@@ -154,7 +156,7 @@
     });
   } else {
     if (h.state !== 'none') dropHash();
-    if (h.state === 'adopted') S.toast('このブラウザで、続きから押せるようになりました');
+    if (h.state === 'adopted') S.toast(S.L('このブラウザで、続きから押せるようになりました', 'You can now carry on in this browser'));
     load();
   }
 

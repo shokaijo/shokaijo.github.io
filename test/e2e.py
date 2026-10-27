@@ -34,8 +34,8 @@ def check(name, cond):
     checks.append((name, bool(cond)))
 
 
-def new_ctx(browser, **kw):
-    ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale="ja-JP", **kw)
+def new_ctx(browser, locale="ja-JP", **kw):
+    ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale=locale, **kw)
     pg = ctx.new_page()
     pg.on("console", lambda m: m.type == "error" and "ERR_FAILED" not in m.text and errors.append(m.text))
     pg.on("pageerror", lambda e: errors.append(str(e)))
@@ -369,9 +369,69 @@ with sync_playwright() as p:
     p4.wait_for_selector("#error:not(.hidden)")
     check("知らないパスポートはお知らせ", "パスポートは見つかりませんでした" in p4.inner_text("#error-text"))
 
+    # 9. 英語：スマホの言語が英語なら英語で開き、本人が切り替えられる。記録は日本語のまま
+    page.goto(f"{BASE}/?r={ref}")
+    page.wait_for_selector("#app:not(.hidden)")
+    check("紹介元の画面には切り替えを出さない", page.locator("#langsw").count() == 0)
+    page.click("#shop-pick")
+    page.locator(".shop", has_text="見本の店C").click()
+    page.fill("#nick", "Mike")
+    page.click("#make")
+    page.wait_for_selector("#send:not(.hidden)")
+    link_en = line_text(page).strip().splitlines()[-1]
+    en_id = urllib.parse.parse_qs(urllib.parse.urlparse(link_en).query)["id"][0]
+    pe = new_ctx(browser, locale="en-US")
+    pe.goto(link_en)
+    pe.wait_for_selector("#app:not(.hidden)")
+    check("英語：スマホの言語に合わせて英語で開く", pe.evaluate("document.documentElement.lang") == "en" and pe.inner_text("#langsw") == "日本語")
+    check("英語：宛名に「さん」を付けない", pe.inner_text("#addressee") == "Mike")
+    check("英語：入るときの一言に紹介元の名前", "紹介元A sent you" in pe.inner_text("#enter-tip"))
+    check("英語：券面は日本語の店名のまま", pe.inner_text("#shop-name") == "見本の店C" and "行きつけの紹介状" in pe.inner_text(".ticket-head"))
+    check("英語：地図・案内・ご注意も英語", pe.inner_text("#map") == "Open in Maps" and "When you pay" in pe.inner_text("#howto summary") and "Notes on this trial" in pe.inner_text("#notes summary"))
+    check("英語：日本語が残っていない（店名・紹介元・券面を除く）", all(w not in pe.inner_text("#app") for w in ["お会計", "地図で見る", "スタンプ"]))
+    pe.screenshot(path=str(out / "9_en_letter.png"), full_page=True)
+    pe.goto(f"{BASE}/visit.html?s=shop-c")
+    pe.wait_for_selector("#visit-card:not(.hidden)")
+    check("英語：店内の画面", pe.inner_text("#visit-btn") == "Get your stamp" and "Get a stamp to remember your visit" in pe.inner_text("#visit-card"))
+    pe.screenshot(path=str(out / "9_en_visit.png"), full_page=True)
+    pe.click("#visit-btn")
+    pe.wait_for_selector("#used:not(.hidden)")
+    check("英語：押したあと", "Your stamp from" in pe.inner_text("#used-name") and "Stamped:" in pe.inner_text("#used-mine"))
+    check("英語：ひとことの選択肢", pe.locator("#words label.chip", has_text="Had fun").count() == 1)
+    pe.locator("#words label.chip", has_text="Had fun").click()
+    pe.wait_for_function("document.getElementById('toast').textContent.includes('Added to your stamp')")
+    row = [r for r in letters() if r[0] == en_id][0]
+    check("英語：ひとことは日本語で残る", row[13] == "楽しかった")
+    pe.wait_for_selector("#card-box .issue")
+    check("英語：発行の欄", "Get your own Kichijoji Hashigo Passport?" in pe.inner_text("#card-box") and pe.inner_text("#pass-issue") == "Issue")
+    pe.click("#ask summary")
+    pe.locator("#ask-from label.chip", has_text="From overseas").click()
+    pe.locator("#ask-else label.chip", has_text="Stayed home").click()
+    pe.screenshot(path=str(out / "9_en_used.png"), full_page=True)
+    pe.click("#ask-send")
+    pe.wait_for_selector("#ask-thanks:not(.hidden)")
+    ans = state().get("answers") or []
+    check("英語：問いの答えは日本語で残る", ans[-1][6] == "海外から" and ans[-1][7] == "家で過ごしていた")
+    pe.click("#langsw a")
+    pe.wait_for_selector("#used:not(.hidden)")
+    check("切り替え：日本語になり、覚える", pe.evaluate("document.documentElement.lang") == "ja" and "スタンプを押しました" in pe.inner_text("#used-name") and pe.inner_text("#langsw") == "English" and pe.evaluate("localStorage.getItem('shokaijo:lang')") == "ja")
+    check("切り替え：日本語では敬称が付く", pe.inner_text("#addressee") == "Mikeさん")
+    pe.click("#langsw a")
+    pe.wait_for_selector("#used:not(.hidden)")
+    pe.goto(f"{BASE}/card.html")
+    pe.wait_for_selector("#app:not(.hidden)")
+    check("英語：パスポートも英語のまま", pe.inner_text("#count") == "1 stamp" and "via 紹介元A" in pe.inner_text("#grid") and pe.inner_text("#langsw") == "日本語")
+    pe.screenshot(path=str(out / "9_en_card.png"), full_page=True)
+    pe.goto(f"{BASE}/visit.html?s=shop-a")
+    pe.wait_for_selector("#none:not(.hidden)")
+    check("英語：QRで紹介状が見つからないとき", "Came with a letter of introduction?" in pe.inner_text("#none"))
+    pe.goto(f"{BASE}/letter.html?id=Lnope")
+    pe.wait_for_selector("#error:not(.hidden)")
+    check("英語：エラーも英語", pe.inner_text("#error-text") == "This letter could not be found.")
+
     for pg in (page, p2, p3, p4, p5):
         check("どの画面にもご注意がある", pg.locator("#notes").count() == 1)
-    for pg in (page, p2, p3, p4, p5):
+    for pg in (page, p2, p3, p4, p5, pe):
         check("横スクロールなし", pg.evaluate("document.documentElement.scrollWidth") <= 390)
 
     browser.close()

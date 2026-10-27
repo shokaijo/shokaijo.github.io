@@ -1,37 +1,37 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-i18n>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027d">
+<link rel="stylesheet" href="style.css?v=20261027e">
 </head>
 <body>
 <main class="wrap">
-  <div id="loading" class="loading">紹介状を探しています…</div>
+  <div id="loading" class="loading" data-en="Looking for your letter…">紹介状を探しています…</div>
 
   <div id="none" class="hidden">
-    <h1>紹介状で来られた方へ</h1>
+    <h1 data-en="Came with a letter of introduction?">紹介状で来られた方へ</h1>
     <!-- ほかのお店への紹介状があるとき：まず、どこ宛てかを伝える -->
     <section class="card hidden" id="other-box">
       <p class="other-lead" id="other-lead"></p>
       <div id="other-links"></div>
-      <p class="muted small">紹介状の行き先と違うお店のQRコードでは、スタンプは押せません。</p>
+      <p class="muted small" data-en="You cannot get a stamp with the QR code of a shop other than the one on your letter.">紹介状の行き先と違うお店のQRコードでは、スタンプは押せません。</p>
     </section>
     <section class="card" id="none-box">
-      <p id="none-lead">このスマホでは、このお店への紹介状が見つかりませんでした。</p>
-      <p>お手数ですが、紹介してくれた人に、お店に行ったことを直接伝えてください。</p>
-      <p class="muted">紹介状をLINEで受け取った方は、一度そのリンクを開いてから、もう一度QRコードを読むと見つかることがあります。</p>
+      <p id="none-lead" data-en="We could not find a letter for this shop on this phone.">このスマホでは、このお店への紹介状が見つかりませんでした。</p>
+      <p data-en="Sorry for the trouble. Please tell the person who introduced you that you came.">お手数ですが、紹介してくれた人に、お店に行ったことを直接伝えてください。</p>
+      <p class="muted" data-en="If you received your letter on LINE, open that link once, then scan the QR code again. It may show up then.">紹介状をLINEで受け取った方は、一度そのリンクを開いてから、もう一度QRコードを読むと見つかることがあります。</p>
     </section>
   </div>
 
-  <p class="foot">行きつけの紹介状（試験運用中）</p>
+  <p class="foot" data-en="行きつけの紹介状 · Letter of Introduction (trial)">行きつけの紹介状（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261027d"></script>
-<script src="common.js?v=20261027d"></script>
+<script src="config.js?v=20261027e"></script>
+<script src="common.js?v=20261027e"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -40,16 +40,16 @@
   var netError = false;
 
   function showNone() {
-    if (netError) document.getElementById('none-lead').textContent = '通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度QRコードを読んでください。';
+    if (netError) document.getElementById('none-lead').textContent = S.L('通信できず、紹介状を確かめられませんでした。電波のよいところで、もう一度QRコードを読んでください。', 'We could not check your letter because of a connection problem. Please scan the QR code again where the signal is better.');
     // このスマホにある、ほかのお店宛てのまだ押していない紹介状
     var others = all.filter(function (x) { return x.shop !== shop && !x.pressed; }).slice(0, 3);
     var box = document.getElementById('other-box');
     if (others.length && !netError) {
-      var names = others.map(function (x) { return x.name || '別のお店'; });
-      document.getElementById('other-lead').innerHTML = 'このスマホにある紹介状は、<b>' +
-        names.map(S.esc).join('</b>・<b>') + '</b>宛てです。';
+      var names = others.map(function (x) { return x.name || S.L('別のお店', 'another shop'); });
+      document.getElementById('other-lead').innerHTML = S.L('このスマホにある紹介状は、<b>', 'The letters on this phone are for <b>') +
+        names.map(S.esc).join(S.L('</b>・<b>', '</b>, <b>')) + S.L('</b>宛てです。', '</b>.');
       document.getElementById('other-links').innerHTML = others.map(function (x) {
-        return '<a class="btn" href="letter.html?id=' + encodeURIComponent(x.id) + '">' + S.esc(x.name || '別のお店') + 'への紹介状を開く</a>';
+        return '<a class="btn" href="letter.html?id=' + encodeURIComponent(x.id) + '">' + S.L(S.esc(x.name || '別のお店') + 'への紹介状を開く', 'Open the letter for ' + S.esc(x.name || 'another shop')) + '</a>';
       }).join('');
       box.classList.remove('hidden');
       document.getElementById('none-box').classList.add('hidden');

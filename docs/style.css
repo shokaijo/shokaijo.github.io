@@ -599,3 +599,7 @@ section.card-box { margin-top: 0; padding-top: 20px; border-top: 1px solid var(-
 .ask-drawer > summary { padding-top: 12px; padding-bottom: 12px; }
 .ask-drawer .howto-title { font-size: 14px; font-weight: 600; color: var(--muted); }
 .ask-drawer .howto-sub { font-size: 12px; }
+
+/* 言語の切り替え（受け取った人の画面だけ）：右上に、いまと違う言語の名前を文字リンクで */
+.langsw { display: flex; justify-content: flex-end; margin: 0 0 8px; font-size: 13px; }
+.langsw a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; }

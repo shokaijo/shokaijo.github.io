@@ -28,6 +28,70 @@
     server_error: 'うまく処理できませんでした。少しおいて、もう一度お試しください。'
   };
 
+  var MESSAGES_EN = {
+    referrer_not_found: 'This link could not be found. Please check with the person who introduced you.',
+    referrer_stopped: 'This link cannot be used right now.',
+    shop_not_found: 'This shop is not taking letters of introduction right now.',
+    wrong_shop: 'This QR code belongs to a different shop from the one on your letter.',
+    letter_not_found: 'This letter could not be found.',
+    card_not_found: 'This passport could not be found. Please check that the link was not cut off.',
+    bad_key: 'We could not read the passport data on this phone. Please reopen the page and try again.',
+    pass_name_required: 'Please enter a nickname.',
+    pass_no_stamp: 'You can issue a passport after you get a stamp.',
+    not_visited: 'You can answer after you get your stamp.',
+    not_yours: 'This stamp was not collected on this phone, so it cannot be changed here.',
+    no_answer: 'Please choose at least one answer.',
+    letter_used: 'This letter has already been used.',
+    letter_expired: 'This letter has expired.',
+    letter_stopped: 'This letter cannot be used right now.',
+    old_link: 'This link is in an old format and no longer works. Please ask the person who introduced you to send a new letter.',
+    not_configured: 'Not ready yet (the service is not connected).',
+    network: 'We could not connect. Please try again where the signal is better.',
+    server_error: 'Something went wrong. Please wait a moment and try again.'
+  };
+
+  // 言語：受け取った人の画面（<html data-i18n>）だけ英語に切り替えられる。選んだ言語はこのスマホが覚える
+  var LANG_KEY = 'shokaijo:lang';
+  var I18N = document.documentElement.hasAttribute('data-i18n');
+  function detectLang() {
+    if (!I18N) return 'ja';
+    var v = null;
+    try { v = window.localStorage.getItem(LANG_KEY); } catch (e) { v = null; }
+    if (v === 'ja' || v === 'en') return v;
+    var nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'ja';
+    return /^ja\b/i.test(nav) ? 'ja' : 'en';
+  }
+  var LANG = detectLang();
+  var EN = LANG === 'en';
+  function L(ja, en) { return EN ? en : ja; }
+  function setLang(v) {
+    try { window.localStorage.setItem(LANG_KEY, v); } catch (e) { /* 使えなくても、この表示の間は切り替わる */ }
+  }
+  // 画面に書いてある文：data-en を持つ要素は、英語のときその中身に置き換える（中身は自前の固定文だけ）
+  function applyStatic() {
+    if (!I18N) return;
+    document.documentElement.lang = LANG;
+    if (!EN) return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-en]'), function (el) { el.innerHTML = el.getAttribute('data-en'); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-en-placeholder]'), function (el) { el.placeholder = el.getAttribute('data-en-placeholder'); });
+  }
+  // 右上の切り替え：いまと違う言語の名前を、文字リンクで出す
+  function mountLangSwitch() {
+    if (!I18N || document.getElementById('langsw')) return;
+    var main = document.querySelector('main.wrap');
+    if (!main) return;
+    var p = document.createElement('p');
+    p.id = 'langsw';
+    p.className = 'langsw';
+    p.innerHTML = '<a href="#" lang="' + (EN ? 'ja' : 'en') + '">' + (EN ? '日本語' : 'English') + '</a>';
+    p.firstChild.addEventListener('click', function (e) {
+      e.preventDefault();
+      setLang(EN ? 'ja' : 'en');
+      location.reload();
+    });
+    main.insertBefore(p, main.firstChild);
+  }
+
   function apiBase() {
     var u = window.SHOKAIJO_API || '';
     return /^https?:\/\//.test(u) || u.charAt(0) === '/' ? u : '';
@@ -66,6 +130,7 @@
 
   function message(err) {
     var code = err && err.message;
+    if (EN) return MESSAGES_EN[code] || MESSAGES_EN.server_error;
     return MESSAGES[code] || MESSAGES.server_error;
   }
 
@@ -83,6 +148,7 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd || '');
     if (!m) return ymd || '';
     var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    if (EN) return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     var w = '日月火水木金土'.charAt(d.getDay());
     return Number(m[1]) + '年' + Number(m[2]) + '月' + Number(m[3]) + '日（' + w + '）';
   }
@@ -176,9 +242,11 @@
     return cardUrl(pub) + '#k=' + myKey();
   }
   function keepText(pub) {
+    if (EN) return '(Private: do not share) Your Kichijoji Hashigo Passport link with its key. If you change phones or your browser data is cleared, open this to carry on where you left off.\n' + ownerUrl(pub);
     return '（自分用・人に送らない）吉祥寺はしごパスポートの鍵つきリンクです。スマホを替えたり、ブラウザのデータが消えたりしたときは、これを開くと続きから押せます。\n' + ownerUrl(pub);
   }
   function showText(pub) {
+    if (EN) return 'My Kichijoji Hashigo Passport (view-only link).\n' + cardUrl(pub);
     return '吉祥寺はしごパスポートです（見るだけのリンク）。\n' + cardUrl(pub);
   }
 
@@ -211,10 +279,20 @@
     '楽しかった': '<circle cx="12" cy="12" r="8"/><path d="M8.5 13.5a4 4 0 0 0 7 0"/><path d="M9.5 9.8v.4M14.5 9.8v.4"/>',
     'また行きたい': '<path d="M5 12a7 7 0 0 1 12-4.9L19 9"/><path d="M19 4.5V9h-4.5"/><path d="M19 12a7 7 0 0 1-12 4.9L5 15"/><path d="M5 19.5V15h4.5"/>'
   };
+  // 画面に出す名前。記録は日本語のまま（集計がばらけないように）
+  var LABEL_EN = {
+    'ありがとう': 'Thank you', '楽しかった': 'Had fun', 'また行きたい': 'Will be back',
+    '吉祥寺の近く': 'Near Kichijoji', '東京のほかの街': 'Elsewhere in Tokyo',
+    '東京の外から（出張・旅行）': 'From outside Tokyo (business or travel)', '海外から': 'From overseas',
+    '家で過ごしていた': 'Stayed home', '吉祥寺の別のお店で飲んでいた': 'Gone to another bar in Kichijoji',
+    'ほかの街で飲んでいた': 'Gone out in another area', 'わからない': 'Not sure'
+  };
+  function label(v) { return EN && LABEL_EN[v] ? LABEL_EN[v] : v; }
   function wordIcon(w) {
     var d = ICON_PATHS[w];
     if (!d) return '';
-    return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + esc(w) + '"><title>' + esc(w) + '</title>' + d + '</svg>';
+    var t = esc(label(w));
+    return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + t + '"><title>' + t + '</title>' + d + '</svg>';
   }
 
   // スタンプ1つ分。店名・行った日・誰の紹介か・選んだ言葉（アイコン）
@@ -229,7 +307,7 @@
       '<div class="hanko" style="transform:rotate(' + tilt + 'deg)">' +
       '<span class="hanko-shop ' + size + '">' + esc(st.shop) + '</span>' +
       '<span class="hanko-date">' + esc(date) + '</span></div>' +
-      '<p class="stamp-from">' + esc(st.from) + 'の紹介</p>' +
+      '<p class="stamp-from">' + (EN ? 'via ' + esc(st.from) : esc(st.from) + 'の紹介') + '</p>' +
       (icons ? '<p class="stamp-words">' + icons + '</p>' : '') +
       '</li>';
   }
@@ -241,15 +319,18 @@
       '<path d="M18 11v26M30 11v26M18 16h12M18 22h12M18 28h12M18 34h12"/></svg>';
   }
 
+  function stampCount(n) { return EN ? n + (n === 1 ? ' stamp' : ' stamps') : 'スタンプ ' + n + '個'; }
+
   // 紹介状の画面から入る小さな表紙。p は myPass の結果（null なら白紙）
   function passMiniHtml(p) {
     var count = p && p.stamps ? p.stamps.length : p && p.count != null ? p.count : 0;
     var sub;
-    if (!p || !count) sub = 'まだスタンプはありません';
-    else if (!p.issued) sub = '未発行・スタンプ ' + count + '個';
-    else sub = p.name + '・スタンプ ' + count + '個';
+    var n = stampCount(count);
+    if (!p || !count) sub = L('まだスタンプはありません', 'No stamps yet');
+    else if (!p.issued) sub = L('未発行・', 'Not issued · ') + n;
+    else sub = p.name + L('・', ' · ') + n;
     return passEmblem() +
-      '<span class="pass-mini-text"><span class="pass-mini-area">吉祥寺</span><span class="pass-mini-title">はしごパスポート</span>' +
+      '<span class="pass-mini-text"><span class="pass-mini-area">' + L('吉祥寺', 'KICHIJOJI') + '</span><span class="pass-mini-title">' + L('はしごパスポート', 'Hashigo Passport') + '</span>' +
       '<span class="pass-mini-sub">' + esc(sub) + '</span></span>' +
       '<span class="pass-mini-go" aria-hidden="true"></span>';
   }
@@ -259,12 +340,13 @@
     var rename = mode === 'rename';
     return '<div class="issue">' +
       (rename ? '' :
-      '<p class="issue-title serif">吉祥寺はしごパスポートを発行しませんか？</p>' +
-      '<p class="issue-lead">酒場で呼ばれたいニックネームで、自分専用のパスポートを発行できます。紹介状で行ったお店のスタンプがたまっていくので、飲み歩きの記録が残ります。今日のスタンプが、最初の1つになります。</p>') +
-      '<label class="field" for="pass-name">' + (rename ? '新しいニックネーム（8文字まで）' : 'ニックネーム（8文字まで・表紙に入ります）') + '</label>' +
-      '<div class="name-row"><input id="pass-name" type="text" autocomplete="off" placeholder="例：まっ、ケン"></div>' +
+      '<p class="issue-title serif">' + L('吉祥寺はしごパスポートを発行しませんか？', 'Get your own Kichijoji Hashigo Passport?') + '</p>' +
+      '<p class="issue-lead">' + L('酒場で呼ばれたいニックネームで、自分専用のパスポートを発行できます。紹介状で行ったお店のスタンプがたまっていくので、飲み歩きの記録が残ります。今日のスタンプが、最初の1つになります。',
+        'Issue a passport of your own under the nickname you like to go by at the bar. Stamps from the shops you visit with a letter collect here, so you keep a record of your nights out. Today\'s stamp will be the first.') + '</p>') +
+      '<label class="field" for="pass-name">' + (rename ? L('新しいニックネーム（8文字まで）', 'New nickname (up to 8 characters)') : L('ニックネーム（8文字まで・表紙に入ります）', 'Nickname (up to 8 characters, shown on the cover)')) + '</label>' +
+      '<div class="name-row"><input id="pass-name" type="text" autocomplete="off" placeholder="' + L('例：まっ、ケン', 'e.g. Mike, Ken') + '"></div>' +
       '<p class="err" id="pass-err" role="alert"></p>' +
-      '<button id="pass-issue" class="btn primary" type="button">' + (rename ? '変える' : '発行する') + '</button>' +
+      '<button id="pass-issue" class="btn primary" type="button">' + (rename ? L('変える', 'Change') : L('発行する', 'Issue')) + '</button>' +
       '</div>';
   }
   function bindIssueForm(root, defaultName, onDone) {
@@ -275,7 +357,7 @@
     function check() {
       var n = input.value.replace(/\s+/g, '');
       var over = Array.from(n).length > 8;
-      err.textContent = over ? '8文字までにしてください。' : '';
+      err.textContent = over ? L('8文字までにしてください。', 'Please use 8 characters or fewer.') : '';
       btn.disabled = !n || over;
     }
     input.addEventListener('input', check);
@@ -294,17 +376,19 @@
   function keepBoxHtml(pub) {
     return '<div class="keepbox">' +
       '<div class="keep-own">' +
-      '<p class="keep-h">自分用の鍵つきリンク</p>' +
-      '<p>スマホを替えたり、ブラウザのデータが消えたりしても、このリンクを開けば続きから押せます。LINEのKeepメモに送っておいてください。</p>' +
-      '<a class="btn line keep-line" href="' + esc(lineShareUrl(keepText(pub))) + '" target="_blank" rel="noopener">LINEのKeepメモに送る（自分用）</a>' +
-      '<button class="btn keep-copy" type="button" data-copy="own">自分用リンクをコピー</button>' +
-      '<p class="keep-warn">スタンプを押すための鍵が入っています。人には送らないでください。</p>' +
+      '<p class="keep-h">' + L('自分用の鍵つきリンク', 'Your private link (with key)') + '</p>' +
+      '<p>' + L('スマホを替えたり、ブラウザのデータが消えたりしても、このリンクを開けば続きから押せます。LINEのKeepメモに送っておいてください。',
+        'If you change phones or your browser data is cleared, open this link to carry on where you left off. Send it to yourself, for example to your LINE Keep Memo.') + '</p>' +
+      '<a class="btn line keep-line" href="' + esc(lineShareUrl(keepText(pub))) + '" target="_blank" rel="noopener">' + L('LINEのKeepメモに送る（自分用）', 'Send to my LINE Keep Memo') + '</a>' +
+      '<button class="btn keep-copy" type="button" data-copy="own">' + L('自分用リンクをコピー', 'Copy private link') + '</button>' +
+      '<p class="keep-warn">' + L('スタンプを押すための鍵が入っています。人には送らないでください。', 'This link holds the key for adding stamps. Do not send it to anyone else.') + '</p>' +
       '</div>' +
       '<div class="keep-show">' +
-      '<p class="keep-h">見せる用のリンク</p>' +
-      '<p>友達やお店の人に見せるときは、こちらを送ってください。見るだけで、スタンプを押されたり名前を変えられたりすることはありません。</p>' +
-      '<a class="btn show-line" href="' + esc(lineShareUrl(showText(pub))) + '" target="_blank" rel="noopener">LINEで見せる</a>' +
-      '<button class="btn keep-copy" type="button" data-copy="show">見せる用リンクをコピー</button>' +
+      '<p class="keep-h">' + L('見せる用のリンク', 'Link for showing others') + '</p>' +
+      '<p>' + L('友達やお店の人に見せるときは、こちらを送ってください。見るだけで、スタンプを押されたり名前を変えられたりすることはありません。',
+        'Send this one to show friends or shop staff. It is view-only: nobody can add stamps or change your name with it.') + '</p>' +
+      '<a class="btn show-line" href="' + esc(lineShareUrl(showText(pub))) + '" target="_blank" rel="noopener">' + L('LINEで見せる', 'Show on LINE') + '</a>' +
+      '<button class="btn keep-copy" type="button" data-copy="show">' + L('見せる用リンクをコピー', 'Copy view-only link') + '</button>' +
       '</div>' +
       '</div>';
   }
@@ -312,7 +396,7 @@
     Array.prototype.forEach.call(root.querySelectorAll('.keep-copy'), function (b) {
       b.addEventListener('click', function () {
         var url = b.getAttribute('data-copy') === 'own' ? ownerUrl(pub) : cardUrl(pub);
-        copyText(url).then(function () { toast('リンクをコピーしました'); }, function () { toast('コピーできませんでした'); });
+        copyText(url).then(function () { toast(L('リンクをコピーしました', 'Link copied')); }, function () { toast(L('コピーできませんでした', 'Could not copy')); });
       });
     });
   }
@@ -365,18 +449,30 @@
     'お店の営業時間や定休日は変わることがあります。お出かけの前に地図などで確かめてください。',
     '記録を消してほしいときや、ご意見は、運営している貝瀬（かいせ）に直接お知らせください。'
   ];
+  var NOTES_EN = [
+    'This is a trial service. Features and screens may change, or the service may end, without notice.',
+    'Records such as letters, stamps and passport nicknames may be deleted without notice.',
+    'Names and nicknames you enter are used only to display letters and passports.',
+    'Anyone with the view-only link to a passport can see it (nickname, shops and dates visited, and who introduced you).',
+    'Letters and stamps come with no perks or discounts.',
+    'Shop hours and closing days may change. Please check a map or similar before you go.',
+    'To have your records deleted, or to share feedback, contact Kaise (かいせ), who runs this service, directly.'
+  ];
   function mountNotes() {
     var foot = document.querySelector('.foot');
     if (!foot || document.getElementById('notes')) return;
     var d = document.createElement('details');
     d.id = 'notes';
     d.className = 'notes';
-    d.innerHTML = '<summary>試験運用中のご注意</summary><ul>' +
-      NOTES.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+    d.innerHTML = '<summary>' + L('試験運用中のご注意', 'Notes on this trial') + '</summary><ul>' +
+      (EN ? NOTES_EN : NOTES).map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
     foot.parentNode.insertBefore(d, foot);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountNotes);
-  else mountNotes();
+  function mountAll() { mountNotes(); mountLangSwitch(); }
+  // 画面の固定文は、ページの台本が動く前に置き換えておく（台本は body の最後で読む）
+  applyStatic();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountAll);
+  else mountAll();
 
   window.Shokaijo = {
     get: get, post: post, message: message, param: param, esc: esc, jpDate: jpDate,
@@ -389,6 +485,7 @@
     ownerUrl: ownerUrl, keyFromHash: keyFromHash, adoptKey: adoptKey,
     issueFormHtml: issueFormHtml, bindIssueForm: bindIssueForm, keepBoxHtml: keepBoxHtml, bindKeepBox: bindKeepBox,
     pressedHere: pressedHere, pendingHere: pendingHere,
-    answered: answered, markAnswered: markAnswered, fromAnswered: fromAnswered
+    answered: answered, markAnswered: markAnswered, fromAnswered: fromAnswered,
+    lang: LANG, en: EN, L: L, label: label, stampCount: stampCount
   };
 })();

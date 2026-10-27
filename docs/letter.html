@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-i18n>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027d">
+<link rel="stylesheet" href="style.css?v=20261027e">
 </head>
 <body>
 <main class="wrap">
-  <div id="loading" class="loading">紹介状を開いています…</div>
+  <div id="loading" class="loading" data-en="Opening your letter…">紹介状を開いています…</div>
 
   <div id="error" class="hidden">
     <div class="card"><p id="error-text"></p></div>
@@ -43,8 +43,8 @@
       <!-- 営業時間や定休日は変わることがあるので出さない。地図で確かめてもらう -->
       <!-- お店に入るとき：受け取った直後だけ、券の半券側に出す -->
       <div class="ticket-stub" id="stub">
-      <p class="enter-tip hidden" id="enter-tip">お店に入って一息ついたら、この画面をお店の人に見せてみてください。一目で<span id="from-3"></span>からの紹介だとわかります。初めてのお店でも、話題に花が咲くかもしれません。</p>
-      <p class="maplink" id="facts"><a id="map" href="#" target="_blank" rel="noopener">地図で見る</a></p>
+      <p class="enter-tip hidden" id="enter-tip" data-en="Once you have settled in, show this screen to the staff. They will see at a glance that &lt;span id=&quot;from-3&quot;&gt;&lt;/span&gt; sent you. It might get a conversation going, even at a place that is new to you.">お店に入って一息ついたら、この画面をお店の人に見せてみてください。一目で<span id="from-3"></span>からの紹介だとわかります。初めてのお店でも、話題に花が咲くかもしれません。</p>
+      <p class="maplink" id="facts"><a id="map" href="#" target="_blank" rel="noopener" data-en="Open in Maps">地図で見る</a></p>
       </div>
     </section>
 
@@ -53,11 +53,11 @@
       <!-- お会計のとき：QRコードの読み方（最初は閉じておく） -->
       <details class="card howto" id="howto">
         <summary>
-          <span class="howto-title">お会計のときに</span>
-          <span class="howto-sub">店内のQRコードを読むと、来店スタンプが押されます</span>
+          <span class="howto-title" data-en="When you pay">お会計のときに</span>
+          <span class="howto-sub" data-en="Scan the QR code in the shop to get a visit stamp">店内のQRコードを読むと、来店スタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「スタンプを押す」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
+          <p data-en="Scan the &quot;Letter of Introduction&quot; QR code in the shop with your phone camera, then tap &quot;Get your stamp&quot;. Each shop you visit with a letter adds a stamp to your own Kichijoji Hashigo Passport.">スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「スタンプを押す」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
         </div>
       </details>
       <a class="pass-mini hidden" id="mycard-before" href="card.html"></a>
@@ -65,11 +65,11 @@
 
     <!-- 2. 帰り際：シールから開いたとき -->
     <section id="visit-card" class="card visit hidden">
-      <h2>来店記念にスタンプを押しましょう</h2>
-      <p>吉祥寺で行ったお店が、あなた専用のパスポートに並んでいきます。はしごの記録は、友だちに見せて自慢できます。</p>
+      <h2 data-en="Get a stamp to remember your visit">来店記念にスタンプを押しましょう</h2>
+      <p data-en="Every shop you visit in Kichijoji lines up in your own passport. Show your bar-hopping record to your friends.">吉祥寺で行ったお店が、あなた専用のパスポートに並んでいきます。はしごの記録は、友だちに見せて自慢できます。</p>
       <p class="err" id="visit-err" role="alert"></p>
-      <button id="visit-btn" class="btn primary" type="button">スタンプを押す</button>
-      <p class="muted small">お会計のときでも、お店を出てからでも押せます。</p>
+      <button id="visit-btn" class="btn primary" type="button" data-en="Get your stamp">スタンプを押す</button>
+      <p class="muted small" data-en="You can do this when you pay, or after you leave.">お会計のときでも、お店を出てからでも押せます。</p>
     </section>
 
     <!-- 3. 押したあと -->
@@ -79,17 +79,17 @@
         <p class="notice again hidden" id="used-again"></p>
       <ul class="stamp-one" id="used-stamp"></ul>
         <p class="greet serif" id="used-name"></p>
-        <p class="muted small">押した日時：<span id="used-at"></span></p>
+        <p class="muted small" data-en="Stamped: &lt;span id=&quot;used-at&quot;&gt;&lt;/span&gt;">押した日時：<span id="used-at"></span></p>
         <!-- スタンプに添えるひとこと：選ぶとすぐ保存。選び直せる -->
         <div class="ask words-box">
-          <p class="ask-title">スタンプにひとこと添える</p>
+          <p class="ask-title" data-en="Add a word to your stamp">スタンプにひとこと添える</p>
           <div id="words" class="chips" role="group" aria-label="スタンプに添えるひとこと"></div>
           <p class="err" id="words-err" role="alert"></p>
-          <p class="muted small" id="words-note">選ぶと、すぐスタンプに添えられます。あとから変えられます。</p>
+          <p class="muted small" id="words-note" data-en="Your choice is added right away. You can change it later.">選ぶと、すぐスタンプに添えられます。あとから変えられます。</p>
         </div>
       </div>
       <!-- 転送された人など、このスマホで押していない人 -->
-      <p id="used-other" class="hidden">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
+      <p id="used-other" class="hidden" data-en="This letter has already been used. Ask the person who introduced you for a new one.">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
     </section>
 
     <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
@@ -98,21 +98,21 @@
     <!-- 来店の問い：このスマホで押した人に、答えていなければ畳んで出す（開かなくてよい） -->
     <details class="card howto ask-drawer hidden" id="ask">
       <summary>
-        <span class="howto-title">よかったら教えてください（任意）</span>
-        <span class="howto-sub">紹介状の改善に役立てます</span>
+        <span class="howto-title" data-en="Mind telling us? (optional)">よかったら教えてください（任意）</span>
+        <span class="howto-sub" data-en="It helps us improve the letters">紹介状の改善に役立てます</span>
       </summary>
       <div class="howto-body" id="ask-body">
         <div id="ask-from-box">
-          <p class="ask-q">どちらから来ましたか</p>
+          <p class="ask-q" data-en="Where did you come from today?">どちらから来ましたか</p>
           <div class="chips" id="ask-from" role="radiogroup" aria-label="どちらから来ましたか"></div>
         </div>
-        <p class="ask-q">この紹介がなかったら、今夜はどうしていましたか</p>
+        <p class="ask-q" data-en="Without this introduction, what would you have done tonight?">この紹介がなかったら、今夜はどうしていましたか</p>
         <div class="chips" id="ask-else" role="radiogroup" aria-label="この紹介がなかったら"></div>
         <p class="err" id="ask-err" role="alert"></p>
-        <button class="btn primary" type="button" id="ask-send" disabled>回答を保存する</button>
+        <button class="btn primary" type="button" id="ask-send" disabled data-en="Save my answers">回答を保存する</button>
       </div>
     </details>
-    <p class="ask-thanks hidden" id="ask-thanks">ご回答ありがとうございました。</p>
+    <p class="ask-thanks hidden" id="ask-thanks" data-en="Thank you for your answers.">ご回答ありがとうございました。</p>
 
 
     <!-- 期限切れ・停止 -->
@@ -121,12 +121,12 @@
     </section>
   </div>
 
-  <p class="foot">行きつけの紹介状（試験運用中）</p>
+  <p class="foot" data-en="行きつけの紹介状 · Letter of Introduction (trial)">行きつけの紹介状（試験運用中）</p>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027d"></script>
-<script src="common.js?v=20261027d"></script>
+<script src="config.js?v=20261027e"></script>
+<script src="common.js?v=20261027e"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -147,6 +147,7 @@
 
   function fullName(nick, hon) {
     if (!nick) return '';
+    if (S.en) return nick;   // 英語のときは敬称を付けない
     return nick + (hon && hon !== 'なし' ? hon : '');
   }
 
@@ -166,7 +167,7 @@
     (d.wordChoices || []).forEach(function (w) {
       var l = document.createElement('label');
       l.className = 'chip';
-      l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.wordIcon(w) + S.esc(w) + '</span>';
+      l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.wordIcon(w) + S.esc(S.label(w)) + '</span>';
       l.querySelector('input').checked = (d.words || []).indexOf(w) >= 0;
       l.querySelector('input').addEventListener('change', function () { saveWords(d); });
       box.appendChild(l);
@@ -181,7 +182,7 @@
     wordsTimer = setTimeout(function () {
       var seq = ++wordsSeq;
       S.post({ action: 'words', id: d.id, key: S.myKey(), words: words })
-        .then(function (r) { if (seq === wordsSeq) { d.words = r.words; S.toast('スタンプに添えました'); } })
+        .then(function (r) { if (seq === wordsSeq) { d.words = r.words; S.toast(S.L('スタンプに添えました', 'Added to your stamp')); } })
         .catch(function (e) { if (seq === wordsSeq) $('words-err').textContent = S.message(e); });
     }, 600);
   }
@@ -199,7 +200,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.from-name'), function (el) { el.textContent = d.from; });
     $('shop-name').textContent = d.shop.name;
     $('map').href = S.mapUrl(d.shop.mapQuery || d.shop.name);
-    document.title = d.shop.name + 'への紹介状';
+    document.title = S.L(d.shop.name + 'への紹介状', 'Letter to ' + d.shop.name);
 
     var unused = d.status === 'unused';
     var atShop = unused && !!at;
@@ -221,7 +222,7 @@
     $('used-mine').classList.toggle('hidden', !mine);
     $('used-other').classList.toggle('hidden', d.status !== 'used' || mine);
     if (d.status === 'used' && mine) {
-      $('used-name').innerHTML = S.esc(d.shop.name) + 'の<br>スタンプを押しました';
+      $('used-name').innerHTML = S.L(S.esc(d.shop.name) + 'の<br>スタンプを押しました', 'Your stamp from<br>' + S.esc(d.shop.name));
       $('used-at').textContent = d.usedAt;
       drawStamp(d, d.words);
       renderWords(d);
@@ -230,7 +231,8 @@
     // もう一度QRを読んだとき：今日押したのではないことをはっきり伝える
     var again = mine && !!at && !justPressed;
     $('used-again').classList.toggle('hidden', !again);
-    if (again) $('used-again').textContent = 'この紹介状のスタンプは、' + S.jpDate(d.usedAt) + 'に押してあります。紹介状1枚につき、スタンプは1つです。';
+    if (again) $('used-again').textContent = S.L('この紹介状のスタンプは、' + S.jpDate(d.usedAt) + 'に押してあります。紹介状1枚につき、スタンプは1つです。',
+      'The stamp for this letter was collected on ' + S.jpDate(d.usedAt) + '. Each letter gets one stamp.');
 
     renderAsk(d, mine);
 
@@ -251,8 +253,8 @@
         $('mycard-before').href = S.cardUrl(p && p.issued ? p.id : '');
       }).catch(function () {});
     }
-    if (d.status === 'stopped') $('closed-text').textContent = 'この紹介状は、いまは使えません。';
-    if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は、いまは使えません。紹介してくれた人に、新しい紹介状を頼んでみてください。';
+    if (d.status === 'stopped') $('closed-text').textContent = S.L('この紹介状は、いまは使えません。', 'This letter cannot be used right now.');
+    if (d.status === 'expired') $('closed-text').textContent = S.L('この紹介状は、いまは使えません。紹介してくれた人に、新しい紹介状を頼んでみてください。', 'This letter cannot be used right now. Ask the person who introduced you for a new one.');
     $('closed-state').classList.toggle('hidden', d.status !== 'stopped' && d.status !== 'expired');
     show('app');
   }
@@ -267,7 +269,7 @@
     $('ask-from-box').classList.toggle('hidden', !askFrom);
     function chips(box, name, list) {
       box.innerHTML = list.map(function (v) {
-        return '<label class="chip"><input type="radio" name="' + name + '" value="' + S.esc(v) + '"><span>' + S.esc(v) + '</span></label>';
+        return '<label class="chip"><input type="radio" name="' + name + '" value="' + S.esc(v) + '"><span>' + S.esc(S.label(v)) + '</span></label>';
       }).join('');
     }
     chips($('ask-from'), 'ask-from', d.answerFrom || []);
@@ -297,12 +299,13 @@
     if (!p) { box.classList.add('hidden'); return; }
     var lead = '';
     var unsaved = S.keyIsSaved() ? '' :
-      '<p class="notice warn small">このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。</p>';
+      '<p class="notice warn small">' + S.L('このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。',
+        'This browser cannot save your passport. Your next stamp would start a new passport, so after issuing it, send yourself the link now.') + '</p>';
     if (!p.issued) {
       box.innerHTML = lead + unsaved + S.issueFormHtml();
       S.bindIssueForm(box, '', function (r) { renderPassBox(r, true); });
     } else {
-      box.innerHTML = (justIssued ? '<p><b>パスポートを発行しました。</b></p>' : lead) +
+      box.innerHTML = (justIssued ? '<p><b>' + S.L('パスポートを発行しました。', 'Your passport has been issued.') + '</b></p>' : lead) +
         '<a class="pass-mini" href="' + S.esc(S.cardUrl(p.id)) + '">' + S.passMiniHtml(p) + '</a>' +
         (justIssued ? S.keepBoxHtml(p.id) : '') + unsaved;
       S.bindKeepBox(box, p.id);
