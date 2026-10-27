@@ -165,7 +165,7 @@ with sync_playwright() as p:
     check("「いらっしゃいませ」は出ない", "いらっしゃいませ" not in page.inner_text("#app"))
     check("言葉の選択肢は3つ（押したあと）", page.locator('#words input[name="word"]').count() == 3)
     page.locator("#words label.chip", has_text="また行きたい").click()
-    check("選ぶとすぐスタンプに出る", page.locator("#used-stamp .stamp-words svg").count() == 1 and page.locator("#used-stamp .stamp-words").is_visible())
+    check("選ぶとすぐスタンプにシールが出る", page.locator("#used-stamp .stamp-seal.seal-again svg").count() == 1 and page.locator("#used-stamp .stamp-seal").is_visible())
     page.wait_for_function("document.getElementById('toast').textContent.includes('添えました')")
     check("押されたスタンプに店名", "見本の店B" in page.inner_text("#used-stamp .hanko"))
     check("押したあとに発行の欄が出る", page.locator("#card-box .issue").is_visible() and "発行しませんか" in page.inner_text("#card-box"))
@@ -250,7 +250,7 @@ with sync_playwright() as p:
     page.wait_for_function("document.getElementById('toast').textContent.includes('添えました')")
     page.reload()
     page.wait_for_selector("#card-box .pass-mini")
-    check("添えた言葉は読み直しても選ばれている", page.locator('#words input[name="word"]:checked').count() == 2)
+    check("ひとことは1つだけ（後に選んだほう）", page.locator('#words input[name="word"]:checked').count() == 1 and page.locator('#words label.chip:has(input:checked)').inner_text().strip() == "楽しかった")
     check("読み直しても本人として出る", page.locator("#used-mine").is_visible() and page.locator("#used-other").is_hidden() and "まつもと・スタンプ 2個" in page.inner_text("#card-box"))
     # 同じ店のQRをもう一度読む
     page.goto(f"{BASE}/visit.html?s=shop-a")
@@ -265,7 +265,7 @@ with sync_playwright() as p:
     check("パスポートの表紙が出る", "KICHIJOJI HASHIGO PASSPORT" in page.inner_text(".pass-cover"))
     check("古い順", page.locator(".stamp-cell:not(.empty) .hanko-shop").all_inner_texts() == ["見本の店B", "見本の店A"])
     check("スタンプに誰の紹介か", "紹介元Aの紹介" in page.inner_text(".stamp-cell >> nth=0"))
-    check("言葉はアイコンで出る", page.locator(".stamp-cell >> nth=1").locator(".stamp-words svg.icon").count() == 2)
+    check("ひとことはシールで出る", page.locator(".stamp-cell >> nth=1").locator(".stamp-seal.seal-fun svg.icon").count() == 1)
     check("自分のものなら「見るだけ」は出ない", page.locator("#view-only").is_hidden() and page.locator("#keep").is_visible())
     check("パスポートに宛名は出ない", "まっちゃん" not in page.inner_text("#app"))
     pass_url = page.url

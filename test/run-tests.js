@@ -141,9 +141,9 @@ test('行ってきました：使用済みになり、2回目は押せない', (
   const res = env.post({ action: 'visit', id, at: 'shop-b', words: ['楽しかった', 'また行きたい'] , key: newKey() });
   assert.strictEqual(res.data.status, 'used');
   assert.strictEqual(res.data.nickname, 'ケン');
-  assert.deepStrictEqual(res.data.words, ['楽しかった', 'また行きたい']);
+  assert.deepStrictEqual(res.data.words, ['楽しかった'], 'ひとことは1つだけ');
   const row = letterRow(env, id);
-  assert.strictEqual(row['ひとこと'], '楽しかった、また行きたい');
+  assert.strictEqual(row['ひとこと'], '楽しかった');
   assert.strictEqual(row['記録の方法'], 'シール');
   assert.ok(row['使用日時']);
   assert.deepStrictEqual(env.post({ action: 'visit', id }), { ok: false, error: 'letter_used' });
@@ -377,8 +377,8 @@ test('ひとこと：押したあとに、押したスマホの鍵でだけ添�
   env.post({ action: 'visit', id, at: 'shop-b', words: [], key });
   assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['楽しかった', '最悪だった', '楽しかった'] }).data.words, ['楽しかった']);
   assert.strictEqual(letterRow(env, id)['ひとこと'], '楽しかった');
-  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['ありがとう', 'また行きたい'] }).data.words, ['ありがとう', 'また行きたい']);
-  assert.strictEqual(letterRow(env, id)['ひとこと'], 'ありがとう、また行きたい');
+  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['ありがとう', 'また行きたい'] }).data.words, ['ありがとう'], '2つ送られても1つだけ');
+  assert.strictEqual(letterRow(env, id)['ひとこと'], 'ありがとう');
   assert.deepStrictEqual(env.post({ action: 'words', id, key: newKey(), words: [] }), { ok: false, error: 'not_yours' }, '別の鍵では変えられない');
   assert.deepStrictEqual(env.post({ action: 'words', id, key: 'x', words: [] }), { ok: false, error: 'bad_key' });
   assert.deepStrictEqual(env.post({ action: 'words', id, key, words: [] }).data.words, []);

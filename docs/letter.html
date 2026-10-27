@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027g">
+<link rel="stylesheet" href="style.css?v=20261027h">
 </head>
 <body>
 <main class="wrap">
@@ -83,9 +83,9 @@
         <!-- スタンプに添えるひとこと：選ぶとすぐ保存。選び直せる -->
         <div class="ask words-box">
           <p class="ask-title" data-en="Add a word to your stamp">スタンプにひとこと添える</p>
-          <div id="words" class="chips" role="group" aria-label="スタンプに添えるひとこと"></div>
+          <div id="words" class="chips" role="group" aria-label="スタンプに添えるひとこと（1つ）"></div>
           <p class="err" id="words-err" role="alert"></p>
-          <p class="muted small" id="words-note" data-en="Your choice is added right away. You can change it later.">選ぶと、すぐスタンプに添えられます。あとから変えられます。</p>
+          <p class="muted small" id="words-note" data-en="Pick one. It is added right away, and you can change it later.">1つ選ぶと、すぐスタンプに添えられます。あとから変えられます。</p>
         </div>
       </div>
       <!-- 転送された人など、このスマホで押していない人 -->
@@ -125,8 +125,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027g"></script>
-<script src="common.js?v=20261027g"></script>
+<script src="config.js?v=20261027h"></script>
+<script src="common.js?v=20261027h"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -164,12 +164,17 @@
   function renderWords(d) {
     var box = $('words');
     box.innerHTML = '';
+    var current = (d.words || [])[0] || '';
     (d.wordChoices || []).forEach(function (w) {
       var l = document.createElement('label');
       l.className = 'chip';
       l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.wordIcon(w) + S.esc(S.label(w)) + '</span>';
-      l.querySelector('input').checked = (d.words || []).indexOf(w) >= 0;
-      l.querySelector('input').addEventListener('change', function () { saveWords(d); });
+      l.querySelector('input').checked = w === current;
+      l.querySelector('input').addEventListener('change', function (e) {
+        // ひとことは1つだけ。選んだら、ほかは外す（同じものをもう一度押せば外れる）
+        if (e.target.checked) Array.prototype.forEach.call(document.querySelectorAll('input[name="word"]'), function (x) { if (x !== e.target) x.checked = false; });
+        saveWords(d);
+      });
       box.appendChild(l);
     });
   }

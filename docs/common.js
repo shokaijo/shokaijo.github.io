@@ -295,29 +295,32 @@
     return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + t + '"><title>' + t + '</title>' + d + '</svg>';
   }
 
-  // スタンプ1つ分。店名・行った日・誰の紹介か・選んだ言葉（アイコン）
+  // ひとことのシールの色（ことばごと）
+  var SEAL = { 'ありがとう': 'seal-thanks', '楽しかった': 'seal-fun', 'また行きたい': 'seal-again' };
+
+  // スタンプ1つ分。判子（お店）・シール（自分のひとこと）・ピン（地図を開く）は持ち主が違うので、見せ方を分ける
   function stampHtml(st, i) {
     var n = Array.from(st.shop || '').length;
     var size = n <= 5 ? 'l' : n <= 9 ? 'm' : 's';
     var tilt = [-7, 4, -3, 6, -5, 2][(i || 0) % 6];
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(st.date || '');
     var date = m ? m[1] + '.' + Number(m[2]) + '.' + Number(m[3]) : '';
-    var icons = (st.words || []).map(wordIcon).join('');
+    var word = (st.words || []).filter(function (w) { return SEAL[w]; })[0] || '';   // ひとことは1つ（前に2つ以上選んだものは最初の1つ）
+    var seal = word ? '<span class="stamp-seal ' + SEAL[word] + '">' + wordIcon(word) + '</span>' : '';
     var hanko = '<div class="hanko" style="transform:rotate(' + tilt + 'deg)">' +
       '<span class="hanko-shop ' + size + '">' + esc(st.shop) + '</span>' +
       '<span class="hanko-date">' + esc(date) + '</span></div>';
     // スタンプを押すと、そのお店の地図が開く（店名が読めなくても、場所でどの店か分かる）。判子の右下にピンを重ねる
     if (st.map) {
       hanko = '<a class="stamp-link" href="' + esc(mapUrl(st.map)) + '" target="_blank" rel="noopener" aria-label="' +
-        esc(L(st.shop + 'の地図を開く', 'Open ' + st.shop + ' in Maps')) + '">' + hanko +
+        esc(L(st.shop + 'の地図を開く', 'Open ' + st.shop + ' in Maps')) + '">' + hanko + seal +
         '<span class="stamp-pin" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span></a>';
     } else {
-      hanko = '<span class="stamp-link">' + hanko + '</span>';
+      hanko = '<span class="stamp-link">' + hanko + seal + '</span>';
     }
-    // 判子の下は1行：誰の紹介か＋ひとこと（アイコン）
+    // 判子の下は1行：誰の紹介か（長いときは…で省く）
     return '<li class="stamp-cell">' + hanko +
-      '<p class="stamp-meta"><span class="stamp-from">' + (EN ? 'via ' + esc(st.from) : esc(st.from) + 'の紹介') + '</span>' +
-      (icons ? '<span class="stamp-words">' + icons + '</span>' : '') + '</p>' +
+      '<p class="stamp-meta"><span class="stamp-from">' + (EN ? 'via ' + esc(st.from) : esc(st.from) + 'の紹介') + '</span></p>' +
       '</li>';
   }
 

@@ -262,10 +262,11 @@ function visit_(letterId, atShopId, words, key) {
   return visitResult_(hit.row, pub);
 }
 
+// ひとことは1つだけ（スタンプのシールとして1枚貼る）
 function pickWords_(words) {
-  return (Array.isArray(words) ? words : []).filter(function (w, i, a) {
-    return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
-  });
+  return (Array.isArray(words) ? words : []).filter(function (w) {
+    return WORDS.indexOf(w) >= 0;
+  }).slice(0, 1);
 }
 
 /**
