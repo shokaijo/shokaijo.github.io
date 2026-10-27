@@ -368,4 +368,27 @@ test('名前の見えない文字は取り除き、全角半角をそろえる�
   assert.ok(n <= 2, '紹介状シートを ' + n + ' 回読んだ');
 });
 
+test('来店の問い：使用済みの紹介状からだけ受け付け、紹介状IDもパスポートも残さない', () => {
+  const env = fresh();
+  const [a, b] = twoLetters(env);
+  const key = newKey();
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, from: '海外から', else: 'わからない' }), { ok: false, error: 'not_visited' });
+  env.post({ action: 'visit', id: a, at: 'shop-b', key });
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, from: 'でたらめ', else: '' }), { ok: false, error: 'no_answer' });
+  assert.strictEqual(env.post({ action: 'answer', id: a, from: '海外から', else: '家で過ごしていた' }).ok, true);
+  assert.strictEqual(env.post({ action: 'answer', id: a, else: 'わからない' }).ok, true);
+  const sh = env.sheets['来店の問い'].data;
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sh[0])), ['日付', '時間帯', '店ID', '店名', '紹介元の種類', '空席から', 'どこから', '紹介がなかったら']);
+  assert.strictEqual(sh.length, 3);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sh[1].slice(2))), ['shop-b', '見本の店B', '店', '', '海外から', '家で過ごしていた']);
+  assert.match(sh[1][0], /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(['18時より前', '18〜20時', '20〜22時', '22〜24時', '24時以降'].includes(sh[1][1]));
+  const all = JSON.stringify(sh);
+  assert.ok(!all.includes(a) && !all.includes(pubOf(key)) && !all.includes(key));
+  // 紹介状を開くと、選択肢が返る
+  const l = env.get({ action: 'letter', id: b }).data;
+  assert.strictEqual(l.answerFrom.length, 4);
+  assert.strictEqual(l.answerElse.length, 4);
+});
+
 console.log(`\n${passed} 件 成功`);

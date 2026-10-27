@@ -11,6 +11,8 @@
     bad_key: 'このスマホのパスポートの情報が読めませんでした。ページを開き直して、もう一度お試しください。',
     pass_name_required: 'ニックネームを入れてください。',
     pass_no_stamp: 'スタンプが押されてから発行できます。',
+    not_visited: '「行ってきました」を押してから答えられます。',
+    no_answer: 'どれか1つ選んでください。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
     letter_stopped: 'この紹介状は、いまは使えません。',
@@ -314,6 +316,19 @@
     });
   }
 
+  // 来店の問い：答えた（か、答えないを選んだ）紹介状と、「どこから」に答えたかを覚える
+  function answered(id) {
+    try { return (JSON.parse(storeGet('shokaijo:answered') || '[]') || []).indexOf(id) >= 0; } catch (e) { return false; }
+  }
+  function markAnswered(id, fromToo) {
+    var list = [];
+    try { list = JSON.parse(storeGet('shokaijo:answered') || '[]') || []; } catch (e) { list = []; }
+    if (list.indexOf(id) < 0) list.unshift(id);
+    storeSet('shokaijo:answered', JSON.stringify(list.slice(0, 50)));
+    if (fromToo) storeSet('shokaijo:from-answered', '1');
+  }
+  function fromAnswered() { return storeGet('shokaijo:from-answered') === '1'; }
+
   // このスマホで「行ってきました」を押した紹介状か（転送された人と見分ける）
   function pressedHere(id) {
     return rememberedLetters().some(function (x) { return x.id === id && x.pressed; });
@@ -372,6 +387,7 @@
     myKey: myKey, ensureKey: ensureKey, keyIsSaved: keyIsSaved, myPass: myPass, keepText: keepText,
     ownerUrl: ownerUrl, keyFromHash: keyFromHash, adoptKey: adoptKey,
     issueFormHtml: issueFormHtml, bindIssueForm: bindIssueForm, keepBoxHtml: keepBoxHtml, bindKeepBox: bindKeepBox,
-    pressedHere: pressedHere, pendingHere: pendingHere
+    pressedHere: pressedHere, pendingHere: pendingHere,
+    answered: answered, markAnswered: markAnswered, fromAnswered: fromAnswered
   };
 })();

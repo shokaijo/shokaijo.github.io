@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261026a">
+<link rel="stylesheet" href="style.css?v=20261027a">
 </head>
 <body>
 <main class="wrap">
@@ -90,6 +90,23 @@
       </div>
       <!-- 転送された人など、このスマホで押していない人 -->
       <p id="used-other" class="hidden">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
+      <!-- 来店の問い：このスマホで押した人に、答えていなければ出す（答えなくてよい） -->
+      <div class="ask hidden" id="ask">
+        <p class="ask-title">よければ2つだけ（10秒）</p>
+        <div id="ask-from-box">
+          <p class="ask-q">どちらから来ましたか</p>
+          <div class="chips" id="ask-from" role="radiogroup" aria-label="どちらから来ましたか"></div>
+        </div>
+        <p class="ask-q">この紹介がなかったら、今夜はどうしていましたか</p>
+        <div class="chips" id="ask-else" role="radiogroup" aria-label="この紹介がなかったら"></div>
+        <p class="err" id="ask-err" role="alert"></p>
+        <div class="ask-actions">
+          <button class="btn primary small" type="button" id="ask-send" disabled>送る</button>
+          <button class="linkish" type="button" id="ask-skip">答えない</button>
+        </div>
+        <p class="muted small">答えは、誰のものか分からない形でまとめて、お店と街のために使います。</p>
+      </div>
+      <p class="muted small hidden" id="ask-thanks">ありがとうございました。</p>
       <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
       <div class="card-box hidden" id="card-box"></div>
     </section>
@@ -103,8 +120,8 @@
   <p class="foot">行きつけの紹介状（試験運用中）</p>
 </main>
 
-<script src="config.js?v=20261026a"></script>
-<script src="common.js?v=20261026a"></script>
+<script src="config.js?v=20261027a"></script>
+<script src="common.js?v=20261027a"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -205,6 +222,8 @@
     $('used-again').classList.toggle('hidden', !again);
     if (again) $('used-again').textContent = 'この紹介状のスタンプは、' + S.jpDate(d.usedAt) + 'に押してあります。紹介状1枚につき、スタンプは1つです。';
 
+    renderAsk(d, mine);
+
     // はしごパスポート：このスマホで押したときだけ（転送された人には出さない）
     $('card-box').classList.add('hidden');
     if (mine) {
@@ -226,6 +245,42 @@
     if (d.status === 'expired') $('closed-text').textContent = 'この紹介状は、いまは使えません。紹介してくれた人に、新しい紹介状を頼んでみてください。';
     $('closed-state').classList.toggle('hidden', d.status !== 'stopped' && d.status !== 'expired');
     show('app');
+  }
+
+  // 来店の問い：どこからは、このスマホで一度答えたら聞かない。紹介がなかったらは紹介状ごとに聞く
+  function renderAsk(d, mine) {
+    var show = mine && !S.answered(d.id) && (d.answerElse || []).length > 0;
+    $('ask').classList.toggle('hidden', !show);
+    if (!show) return;
+    var askFrom = !S.fromAnswered();
+    $('ask-from-box').classList.toggle('hidden', !askFrom);
+    function chips(box, name, list) {
+      box.innerHTML = list.map(function (v) {
+        return '<label class="chip"><input type="radio" name="' + name + '" value="' + S.esc(v) + '"><span>' + S.esc(v) + '</span></label>';
+      }).join('');
+    }
+    chips($('ask-from'), 'ask-from', d.answerFrom || []);
+    chips($('ask-else'), 'ask-else', d.answerElse || []);
+    function picked(name) { var c = document.querySelector('input[name="' + name + '"]:checked'); return c ? c.value : ''; }
+    function update() { $('ask-send').disabled = !(picked('ask-from') || picked('ask-else')); }
+    Array.prototype.forEach.call(document.querySelectorAll('#ask input'), function (i) { i.addEventListener('change', update); });
+    $('ask-send').onclick = function () {
+      var btn = this;
+      btn.disabled = true;
+      $('ask-err').textContent = '';
+      var from = askFrom ? picked('ask-from') : '';
+      S.post({ action: 'answer', id: d.id, from: from, else: picked('ask-else') })
+        .then(function () {
+          S.markAnswered(d.id, !!from);
+          $('ask').classList.add('hidden');
+          $('ask-thanks').classList.remove('hidden');
+        })
+        .catch(function (e) { $('ask-err').textContent = S.message(e); update(); });
+    };
+    $('ask-skip').onclick = function () {
+      S.markAnswered(d.id, false);
+      $('ask').classList.add('hidden');
+    };
   }
 
   // 押したあとのパスポート欄。未発行なら発行の欄、発行済みなら表紙（発行した直後は、とっておく案内も）

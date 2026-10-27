@@ -37,7 +37,7 @@ http.createServer((req, res) => {
   }
   if (url.pathname === '/__state') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ refId, codes, letters: env.sheets['紹介状'].data }));
+    return res.end(JSON.stringify({ refId, codes, letters: env.sheets['紹介状'].data, answers: (env.sheets['来店の問い'] || { data: [] }).data }));
   }
   const file = path.join(root, url.pathname === '/' ? 'index.html' : url.pathname);
   if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); return res.end('not found'); }

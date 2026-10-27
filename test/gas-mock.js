@@ -76,6 +76,7 @@ function createEnv() {
       timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
     }).formatToParts(d).map((p) => [p.type, p.value]));
+    if (pattern === 'H') return String(Number(parts.hour));
     return pattern.replace('yyyy', parts.year).replace('MM', parts.month).replace('dd', parts.day)
       .replace('HH', parts.hour).replace('mm', parts.minute).replace('ss', parts.second);
   };

@@ -572,3 +572,12 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .notes ul { margin: 6px 0 0; padding: 12px 14px 12px 30px; background: var(--soft); border-radius: 10px; line-height: 1.7; }
 .notes li { margin-bottom: 4px; }
 .notes + .foot { margin-top: 8px; }
+
+/* 来店の問い */
+.ask { text-align: left; margin: 14px 0 0; padding: 14px; border-radius: 12px; background: var(--soft); }
+.ask-title { font-weight: 700; font-size: 15px; margin: 0 0 6px; }
+.ask-q { font-size: 14px; margin: 8px 0 6px; }
+.ask .chip span { min-width: 0; font-size: 14px; padding: 6px 12px; background: var(--card); }
+.ask-actions { display: flex; align-items: center; gap: 16px; margin: 4px 0 6px; }
+.ask-actions .btn { min-width: 96px; }
+#ask-thanks { margin: 10px 0 0; }

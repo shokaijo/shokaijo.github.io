@@ -176,7 +176,14 @@ with sync_playwright() as p:
     check("記録には公開IDだけ", pub.startswith("P") and len(pub) == 25)
     key = page.evaluate("localStorage.getItem('shokaijo:key')")
     check("鍵はこのスマホだけにあり、シートにない", key and key.startswith("K") and key not in json.dumps(state()))
+    check("押したあとに来店の問いが出る（2問）", page.locator("#ask").is_visible() and page.locator("#ask-from-box").is_visible() and page.locator('#ask input[name="ask-else"]').count() == 4)
     page.screenshot(path=str(out / "5_used.png"), full_page=True)
+    page.locator("#ask-from label.chip", has_text="海外から").click()
+    page.locator("#ask-else label.chip", has_text="家で過ごしていた").click()
+    page.click("#ask-send")
+    page.wait_for_selector("#ask-thanks:not(.hidden)")
+    ans = state().get("answers") or []
+    check("答えは店・時間帯とともに残り、紹介状IDは残らない", len(ans) == 2 and ans[1][2] == "shop-b" and ans[1][6] == "海外から" and ans[1][7] == "家で過ごしていた" and letter_id not in json.dumps(ans))
     # 発行する前に開き直しても、発行の欄に戻れる（指摘3）
     page.reload()
     page.wait_for_selector("#card-box .issue")
@@ -215,6 +222,7 @@ with sync_playwright() as p:
     page.wait_for_selector("#visit-card:not(.hidden)")
     page.locator("#words label.chip", has_text="ありがとう").click()
     page.locator("#words label.chip", has_text="楽しかった").click()
+    ask2_checked = False
     cut = {"n": 0}
     def drop_once(route):
         if route.request.method == "POST" and '"visit"' in (route.request.post_data or "") and cut["n"] == 0:
@@ -231,6 +239,9 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_selector("#used:not(.hidden)")
     page.wait_for_selector("#card-box .pass-mini")
+    check("2回目は「どこから」を聞かず、紹介がなかったらだけ聞く", page.locator("#ask").is_visible() and page.locator("#ask-from-box").is_hidden())
+    page.click("#ask-skip")
+    check("答えないを選ぶと消える", page.locator("#ask").is_hidden())
     check("読み直しても本人として出る", page.locator("#used-mine").is_visible() and page.locator("#used-other").is_hidden() and "まつもと・スタンプ 2個" in page.inner_text("#card-box"))
     # 同じ店のQRをもう一度読む
     page.goto(f"{BASE}/visit.html?s=shop-a")
@@ -327,6 +338,7 @@ with sync_playwright() as p:
     check("転送先では使用済みとして出る", p3.locator("#used").is_visible())
     check("転送先には、使用済みとだけ出す", p3.locator("#used-other").is_visible() and p3.locator("#used-mine").is_hidden())
     check("転送先にはパスポートの案内を出さない", p3.locator("#card-box").is_hidden())
+    check("転送先には来店の問いを出さない", p3.locator("#ask").is_hidden())
 
     # 7. 紹介状を開いていないスマホでシールを読む
     p4 = new_ctx(browser)

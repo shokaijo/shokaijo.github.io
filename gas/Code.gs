@@ -24,7 +24,8 @@ var SHEET = {
   REFERRERS: '紹介元',
   LETTERS: '紹介状',
   SUMMARY: '集計',
-  PASSPORTS: 'パスポート'
+  PASSPORTS: 'パスポート',
+  ANSWERS: '来店の問い'
 };
 
 var HEAD = {
@@ -34,7 +35,9 @@ var HEAD = {
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '宛名', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
             'ひとこと', '記録の方法', '台紙ID'],
-  PASSPORTS: ['公開ID', '所持人', '発行日時', '更新日時']
+  PASSPORTS: ['公開ID', '所持人', '発行日時', '更新日時'],
+  // 来店の問いの答え。誰の答えか分からないよう、紹介状IDもパスポートのIDも持たず、時刻は時間帯にまるめる
+  ANSWERS: ['日付', '時間帯', '店ID', '店名', '紹介元の種類', '空席から', 'どこから', '紹介がなかったら']
 };
 
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
@@ -42,6 +45,9 @@ var HONORIFICS = ['さん', 'ちゃん', 'くん', 'なし'];
 var NAME_MAX = 8;   // 宛名の文字数（「まっちゃんたち」のようなグループ宛ても入る長さ）
 // 「行ってきました」に添えられる言葉。前向きなものだけを置く（自由記述は受け付けない）
 var WORDS = ['ありがとう', '楽しかった', 'また行きたい'];
+// 来店の問いの選択肢（答えなくてもよい）
+var ANSWER_FROM = ['吉祥寺の近く', '東京のほかの街', '東京の外から（出張・旅行）', '海外から'];
+var ANSWER_ELSE = ['家で過ごしていた', '吉祥寺の別のお店で飲んでいた', 'ほかの街で飲んでいた', 'わからない'];
 var TZ = 'Asia/Tokyo';
 
 /* ------------------------------------------------------------------ */
@@ -71,6 +77,7 @@ function doPost(e) {
     if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words, body.key); });
     if (body.action === 'issue_pass') return withLock_(function () { return issuePass_(body.key, body.name); });
     if (body.action === 'mine') return myPass_(body.key);
+    if (body.action === 'answer') return withLock_(function () { return answer_(body.id, body.from, body.else); });
     throw userError_('unknown_action');
   });
 }
@@ -268,6 +275,43 @@ function visitResult_(row, pub) {
  * パスポートを発行する（名前を変えるときも同じ）。鍵を持っているスマホからだけ。
  * スタンプが1つもないうちは発行しない（押したあとに発行する流れ）。
  */
+/**
+ * 来店の問いに答える。使用済みの紹介状からだけ受け付ける。
+ * 店・日付・時間帯・紹介元の種類は紹介状から引くが、紹介状IDそのものは残さない。
+ */
+function answer_(letterId, from, other) {
+  var hit = findLetter_(letterId);
+  if (!hit) throw userError_('letter_not_found');
+  if (hit.row['状態'] !== STATUS.USED) throw userError_('not_visited');
+  var f = ANSWER_FROM.indexOf(from) >= 0 ? from : '';
+  var e = ANSWER_ELSE.indexOf(other) >= 0 ? other : '';
+  if (!f && !e) throw userError_('no_answer');
+  var used = toDate_(hit.row['使用日時']) || new Date();
+  var ref = findReferrer_('紹介ID', hit.row['紹介ID']);
+  var kind = ref ? ref.kind : '';
+  var row = {};
+  row['日付'] = Utilities.formatDate(used, TZ, 'yyyy-MM-dd');
+  row['時間帯'] = timeBand_(used);
+  row['店ID'] = String(hit.row['行き先の店ID']);
+  row['店名'] = String(hit.row['行き先']);
+  row['紹介元の種類'] = kind;
+  row['空席から'] = '';   // 空席情報を作ったら、仕組みの側で埋める
+  row['どこから'] = f;
+  row['紹介がなかったら'] = e;
+  appendRow_(SHEET.ANSWERS, HEAD.ANSWERS, row);
+  return { ok: true };
+}
+
+/** 時刻を時間帯にまるめる（人数が少ないとき、分単位の時刻から誰の答えか推測されないように） */
+function timeBand_(d) {
+  var h = Number(Utilities.formatDate(d, TZ, 'H'));
+  if (h >= 5 && h < 18) return '18時より前';
+  if (h >= 18 && h < 20) return '18〜20時';
+  if (h >= 20 && h < 22) return '20〜22時';
+  if (h >= 22) return '22〜24時';
+  return '24時以降';
+}
+
 function issuePass_(key, name) {
   if (!isKey_(key)) throw userError_('bad_key');
   var pub = publicIdOf_(key);
@@ -345,6 +389,8 @@ function setup() {
   ensureSheet_(SHEET.REFERRERS, HEAD.REFERRERS);
   ensureSheet_(SHEET.LETTERS, HEAD.LETTERS);
   ensureSheet_(SHEET.PASSPORTS, HEAD.PASSPORTS);
+  ensureSheet_(SHEET.ANSWERS, HEAD.ANSWERS);
+  sheet_(SHEET.ANSWERS).getRange('A:H').setNumberFormat('@');
   sheet_(SHEET.PASSPORTS).getRange('A:B').setNumberFormat('@');
 
   var settings = sheet_(SHEET.SETTINGS);
@@ -467,7 +513,9 @@ function publicLetter_(row) {
     honorific: row['敬称'] || '',
     usedAt: row['使用日時'] ? formatDateTime_(toDate_(row['使用日時'])) : '',
     words: row['ひとこと'] ? String(row['ひとこと']).split('、') : [],
-    wordChoices: WORDS
+    wordChoices: WORDS,
+    answerFrom: ANSWER_FROM,
+    answerElse: ANSWER_ELSE
   };
 }
 
@@ -575,7 +623,8 @@ function findReferrer_(field, value) {
         shareId: rows[i]['共有ID'],
         name: String(rows[i]['呼び名']),
         active: isTrue_(rows[i]['有効']),
-        ownShopId: String(rows[i]['自分の店ID'] || '').trim()
+        ownShopId: String(rows[i]['自分の店ID'] || '').trim(),
+        kind: String(rows[i]['種類'] || '')
       };
     }
   }
