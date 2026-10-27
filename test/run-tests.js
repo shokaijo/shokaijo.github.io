@@ -385,6 +385,18 @@ test('ひとこと：押したあとに、押したスマホの鍵でだけ添�
   assert.strictEqual(letterRow(env, id)['ひとこと'], '');
 });
 
+test('パスポートのスタンプに、地図の検索語が付く', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const id = issue(env, r, 'shop-b').data.id;
+  const key = newKey();
+  env.post({ action: 'visit', id, at: 'shop-b', words: [], key });
+  const st = env.post({ action: 'mine', key }).data.stamps[0];
+  const shop = env.get({ action: 'letter', id }).data.shop;
+  assert.strictEqual(st.map, shop.mapQuery);
+  assert.ok(st.map);
+});
+
 test('来店の問い：使用済みの紹介状からだけ受け付け、紹介状IDもパスポートも残さない', () => {
   const env = fresh();
   const [a, b] = twoLetters(env);

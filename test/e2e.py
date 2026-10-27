@@ -265,7 +265,7 @@ with sync_playwright() as p:
     check("パスポートの表紙が出る", "KICHIJOJI HASHIGO PASSPORT" in page.inner_text(".pass-cover"))
     check("古い順", page.locator(".stamp-cell:not(.empty) .hanko-shop").all_inner_texts() == ["見本の店B", "見本の店A"])
     check("スタンプに誰の紹介か", "紹介元Aの紹介" in page.inner_text(".stamp-cell >> nth=0"))
-    check("言葉はアイコンで出る", page.locator(".stamp-cell >> nth=1").locator("svg.icon").count() == 2)
+    check("言葉はアイコンで出る", page.locator(".stamp-cell >> nth=1").locator(".stamp-words svg.icon").count() == 2)
     check("自分のものなら「見るだけ」は出ない", page.locator("#view-only").is_hidden() and page.locator("#keep").is_visible())
     check("パスポートに宛名は出ない", "まっちゃん" not in page.inner_text("#app"))
     pass_url = page.url
@@ -420,6 +420,8 @@ with sync_playwright() as p:
     pe.wait_for_selector("#used:not(.hidden)")
     pe.goto(f"{BASE}/card.html")
     pe.wait_for_selector("#app:not(.hidden)")
+    href = pe.get_attribute("#grid .stamp-cell:not(.empty) a.stamp-link", "href") or ""
+    check("スタンプから地図が開く", href.startswith("https://www.google.com/maps/search/") and pe.get_attribute("#grid a.stamp-link", "target") == "_blank" and "Map" in pe.inner_text("#grid .stamp-pin"))
     check("英語：パスポートも英語のまま", pe.inner_text("#count") == "1 stamp" and "via 紹介元A" in pe.inner_text("#grid") and pe.inner_text("#langsw") == "日本語")
     pe.screenshot(path=str(out / "9_en_card.png"), full_page=True)
     pe.goto(f"{BASE}/visit.html?s=shop-a")

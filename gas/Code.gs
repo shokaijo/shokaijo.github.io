@@ -157,13 +157,15 @@ function myPass_(key) {
 
 function stampsOf_(publicId) {
   var shops = {};
-  readTable_(SHEET.SHOPS, HEAD.SHOPS, true).forEach(function (s) { shops[String(s['店ID'])] = String(s['店名']); });
+  readTable_(SHEET.SHOPS, HEAD.SHOPS, true).forEach(function (s) { shops[String(s['店ID'])] = publicShop_(s); });
   var stamps = readTable_(SHEET.LETTERS, HEAD.LETTERS)
     .filter(function (r) { return String(r['台紙ID']) === publicId && r['状態'] === STATUS.USED; })
     .map(function (r) {
       var used = toDate_(r['使用日時']);
+      var shop = shops[String(r['行き先の店ID'])];
       return {
-        shop: shops[String(r['行き先の店ID'])] || String(r['行き先']),
+        shop: shop ? shop.name : String(r['行き先']),
+        map: shop ? shop.mapQuery : String(r['行き先']),   // 店名が読めない人も、地図でどの店か分かるように
         from: String(r['紹介元']),
         date: formatDate_(used),
         t: (used || new Date(0)).getTime(),

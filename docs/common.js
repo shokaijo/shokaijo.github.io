@@ -303,10 +303,16 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(st.date || '');
     var date = m ? m[1] + '.' + Number(m[2]) + '.' + Number(m[3]) : '';
     var icons = (st.words || []).map(wordIcon).join('');
-    return '<li class="stamp-cell">' +
-      '<div class="hanko" style="transform:rotate(' + tilt + 'deg)">' +
+    var hanko = '<div class="hanko" style="transform:rotate(' + tilt + 'deg)">' +
       '<span class="hanko-shop ' + size + '">' + esc(st.shop) + '</span>' +
-      '<span class="hanko-date">' + esc(date) + '</span></div>' +
+      '<span class="hanko-date">' + esc(date) + '</span></div>';
+    // スタンプを押すと、そのお店の地図が開く（店名が読めなくても、場所でどの店か分かる）
+    if (st.map) {
+      hanko = '<a class="stamp-link" href="' + esc(mapUrl(st.map)) + '" target="_blank" rel="noopener" aria-label="' +
+        esc(L(st.shop + 'の地図を開く', 'Open ' + st.shop + ' in Maps')) + '">' + hanko +
+        '<span class="stamp-pin" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>' + L('地図', 'Map') + '</span></a>';
+    }
+    return '<li class="stamp-cell">' + hanko +
       '<p class="stamp-from">' + (EN ? 'via ' + esc(st.from) : esc(st.from) + 'の紹介') + '</p>' +
       (icons ? '<p class="stamp-words">' + icons + '</p>' : '') +
       '</li>';
