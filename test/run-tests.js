@@ -401,11 +401,18 @@ test('来店の問い：使用済みの紹介状からだけ受け付け、紹�
   const env = fresh();
   const [a, b] = twoLetters(env);
   const key = newKey();
-  assert.deepStrictEqual(env.post({ action: 'answer', id: a, from: '海外から', else: 'わからない' }), { ok: false, error: 'not_visited' });
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, key, from: '海外から', else: 'わからない' }), { ok: false, error: 'not_visited' });
   env.post({ action: 'visit', id: a, at: 'shop-b', key });
-  assert.deepStrictEqual(env.post({ action: 'answer', id: a, from: 'でたらめ', else: '' }), { ok: false, error: 'no_answer' });
-  assert.strictEqual(env.post({ action: 'answer', id: a, from: '海外から', else: '家で過ごしていた' }).ok, true);
-  assert.strictEqual(env.post({ action: 'answer', id: a, else: 'わからない' }).ok, true);
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, key, from: 'でたらめ', else: '' }), { ok: false, error: 'no_answer' });
+  // 押したスマホの鍵でないと答えられない（転送された人など）
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, key: newKey(), from: '海外から' }), { ok: false, error: 'not_yours' });
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, from: '海外から' }), { ok: false, error: 'not_yours' });
+  assert.strictEqual(env.post({ action: 'answer', id: a, key, from: '海外から', else: '家で過ごしていた' }).ok, true);
+  // 1枚の紹介状で答えられるのは1回だけ（重複で割合が狂わないように）
+  assert.deepStrictEqual(env.post({ action: 'answer', id: a, key, else: 'わからない' }), { ok: false, error: 'already_answered' });
+  // 別の紹介状なら、どこからは省いて答えられる
+  env.post({ action: 'visit', id: b, at: 'shop-c', key });
+  assert.strictEqual(env.post({ action: 'answer', id: b, key, else: 'わからない' }).ok, true);
   const sh = env.sheets['来店の問い'].data;
   assert.deepStrictEqual(JSON.parse(JSON.stringify(sh[0])), ['日付', '時間帯', '店ID', '店名', '紹介元の種類', '空席から', 'どこから', '紹介がなかったら']);
   assert.strictEqual(sh.length, 3);

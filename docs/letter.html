@@ -287,14 +287,19 @@
       btn.disabled = true;
       $('ask-err').textContent = '';
       var from = askFrom ? picked('ask-from') : '';
-      S.post({ action: 'answer', id: d.id, from: from, else: picked('ask-else') })
-        .then(function () {
-          S.markAnswered(d.id, !!from);
-          // 答えたら畳みごと消して、お礼を一行だけ残す
-          $('ask').classList.add('hidden');
-          $('ask-thanks').classList.remove('hidden');
-        })
-        .catch(function (e) { $('ask-err').textContent = S.message(e); update(); });
+      function done() {
+        S.markAnswered(d.id, !!from);
+        // 答えたら畳みごと消して、お礼を一行だけ残す
+        $('ask').classList.add('hidden');
+        $('ask-thanks').classList.remove('hidden');
+      }
+      S.post({ action: 'answer', id: d.id, key: S.myKey(), from: from, else: picked('ask-else') })
+        .then(done)
+        .catch(function (e) {
+          // 通信が切れて送り直したときなど、もう記録されていれば答えたことにする
+          if (e && e.message === 'already_answered') { done(); return; }
+          $('ask-err').textContent = S.message(e); update();
+        });
     };
   }
 

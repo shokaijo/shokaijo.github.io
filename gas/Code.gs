@@ -4,12 +4,12 @@
  *
  * シート
  *   設定        … 有効期限の日数、呼び名を消すまでの日数、画面のURL
- *   店          … 紹介先になる店。お店の確認番号は店で「使用済み」にするときに使う
+ *   店          … 紹介先になる店（「お店の確認番号」の列は以前の仕組みの名残りで、いまは使っていない）
  *   紹介元  … 紹介元ごとに1行。有効を FALSE にすると、そのリンクは止まる
  *   紹介状      … 紹介元が紹介状をつくるたびに1行できる
  *   集計        … 紹介元ごと・店ごとの数（式で自動）
- *
  *   パスポート  … 発行された「吉祥寺はしごパスポート」ごとに1行（公開ID・所持人の名前）
+ *   来店の問い  … 押したあとの任意の問いの答え。誰の答えか分からないよう、紹介状とはつなげない
  *
  * はしごパスポートの作り
  *   鍵     … お客さんのスマホの中だけで作る秘密の値。スタンプを押す・名前を変えるときだけ送る。シートには残さない
@@ -34,7 +34,7 @@ var HEAD = {
   REFERRERS: ['紹介ID', '共有ID', '呼び名', '種類', '有効', '紹介用リンク', 'メモ', '自分の店ID'],
   LETTERS: ['紹介状ID', '紹介ID', '紹介元', '行き先の店ID', '行き先', '作成日時', '期限',
             '宛名', '敬称', '状態', '使用日時', '誤入力の回数', '呼び名を消した日時',
-            'ひとこと', '記録の方法', '台紙ID'],
+            'ひとこと', '記録の方法', '台紙ID', '問いに回答'],
   PASSPORTS: ['公開ID', '所持人', '発行日時', '更新日時'],
   // 来店の問いの答え。誰の答えか分からないよう、紹介状IDもパスポートのIDも持たず、時刻は時間帯にまるめる
   ANSWERS: ['日付', '時間帯', '店ID', '店名', '紹介元の種類', '空席から', 'どこから', '紹介がなかったら']
@@ -77,7 +77,7 @@ function doPost(e) {
     if (body.action === 'visit') return withLock_(function () { return visit_(body.id, body.at, body.words, body.key); });
     if (body.action === 'issue_pass') return withLock_(function () { return issuePass_(body.key, body.name); });
     if (body.action === 'mine') return myPass_(body.key);
-    if (body.action === 'answer') return withLock_(function () { return answer_(body.id, body.from, body.else); });
+    if (body.action === 'answer') return withLock_(function () { return answer_(body.id, body.key, body.from, body.else); });
     if (body.action === 'words') return withLock_(function () { return setWords_(body.id, body.key, body.words); });
     throw userError_('unknown_action');
   });
@@ -294,17 +294,17 @@ function visitResult_(row, pub) {
 }
 
 /**
- * パスポートを発行する（名前を変えるときも同じ）。鍵を持っているスマホからだけ。
- * スタンプが1つもないうちは発行しない（押したあとに発行する流れ）。
- */
-/**
- * 来店の問いに答える。使用済みの紹介状からだけ受け付ける。
+ * 来店の問いに答える。使用済みの紹介状から、押したスマホの鍵でだけ、1回だけ受け付ける。
  * 店・日付・時間帯・紹介元の種類は紹介状から引くが、紹介状IDそのものは残さない。
+ * 紹介状の行には「問いに回答」の印だけを付ける（どの答えかは残さない）。数が少ないうちは重複で割合が狂うため。
  */
-function answer_(letterId, from, other) {
+function answer_(letterId, key, from, other) {
   var hit = findLetter_(letterId);
   if (!hit) throw userError_('letter_not_found');
   if (hit.row['状態'] !== STATUS.USED) throw userError_('not_visited');
+  // 台紙IDがある（シールから押した）ときは、押したスマホの鍵だけ。転送された人は答えられない
+  if (hit.row['台紙ID'] && (!isKey_(key) || String(hit.row['台紙ID']) !== publicIdOf_(key))) throw userError_('not_yours');
+  if (isTrue_(hit.row['問いに回答'])) throw userError_('already_answered');
   var f = ANSWER_FROM.indexOf(from) >= 0 ? from : '';
   var e = ANSWER_ELSE.indexOf(other) >= 0 ? other : '';
   if (!f && !e) throw userError_('no_answer');
@@ -321,6 +321,7 @@ function answer_(letterId, from, other) {
   row['どこから'] = f;
   row['紹介がなかったら'] = e;
   appendRow_(SHEET.ANSWERS, HEAD.ANSWERS, row);
+  setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, { '問いに回答': true });
   return { ok: true };
 }
 
@@ -334,6 +335,10 @@ function timeBand_(d) {
   return '24時以降';
 }
 
+/**
+ * パスポートを発行する（名前を変えるときも同じ）。鍵を持っているスマホからだけ。
+ * スタンプが1つもないうちは発行しない（押したあとに発行する流れ）。
+ */
 function issuePass_(key, name) {
   if (!isKey_(key)) throw userError_('bad_key');
   var pub = publicIdOf_(key);
