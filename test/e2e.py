@@ -421,7 +421,7 @@ with sync_playwright() as p:
     pe.goto(f"{BASE}/card.html")
     pe.wait_for_selector("#app:not(.hidden)")
     href = pe.get_attribute("#grid .stamp-cell:not(.empty) a.stamp-link", "href") or ""
-    check("スタンプから地図が開く", href.startswith("https://www.google.com/maps/search/") and pe.get_attribute("#grid a.stamp-link", "target") == "_blank" and "Map" in pe.inner_text("#grid .stamp-pin"))
+    check("スタンプから地図が開く", href.startswith("https://www.google.com/maps/search/") and pe.get_attribute("#grid a.stamp-link", "target") == "_blank" and "in Maps" in (pe.get_attribute("#grid a.stamp-link", "aria-label") or "") and pe.locator("#grid .stamp-pin svg").count() == 1)
     check("英語：パスポートも英語のまま", pe.inner_text("#count") == "1 stamp" and "via 紹介元A" in pe.inner_text("#grid") and pe.inner_text("#langsw") == "日本語")
     pe.screenshot(path=str(out / "9_en_card.png"), full_page=True)
     pe.goto(f"{BASE}/visit.html?s=shop-a")
