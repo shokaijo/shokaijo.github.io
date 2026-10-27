@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027a">
+<link rel="stylesheet" href="style.css?v=20261027b">
 </head>
 <body>
 <main class="wrap">
@@ -57,7 +57,7 @@
           <span class="howto-sub">店内のQRコードを読むと、来店スタンプが押されます</span>
         </summary>
         <div class="howto-body">
-          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「行ってきました」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
+          <p>スマホのカメラで、店内にある「行きつけの紹介状」のQRコードを読み、「スタンプを押す」を押してください。紹介状で行ったお店の来店スタンプが、あなた専用の「吉祥寺はしごパスポート」にたまっていきます。</p>
         </div>
       </details>
       <a class="pass-mini hidden" id="mycard-before" href="card.html"></a>
@@ -65,18 +65,12 @@
 
     <!-- 2. 帰り際：シールから開いたとき -->
     <section id="visit-card" class="card visit hidden">
-      <h2 id="visit-title"></h2>
-      <div id="visit-slot"></div>
-    </section>
-
-    <!-- 「行ってきました」の部品（シールから開いたときだけ、2に差し込む） -->
-    <div id="visit-form" class="hidden">
-      <p class="muted">よければ、ひとこと選んでください（選ばなくてもかまいません）。</p>
-      <div id="words" class="chips" role="group" aria-label="ひとこと"></div>
+      <h2>来店記念にスタンプを押しましょう</h2>
+      <p>吉祥寺で行ったお店が、あなた専用のパスポートに並んでいきます。はしごの記録は、友だちに見せて自慢できます。</p>
       <p class="err" id="visit-err" role="alert"></p>
-      <button id="visit-btn" class="btn primary" type="button">行ってきました</button>
-      <p class="muted">選んだ言葉は、スタンプと一緒にパスポートに残ります。</p>
-    </div>
+      <button id="visit-btn" class="btn primary" type="button">スタンプを押す</button>
+      <p class="muted small">お会計のときでも、お店を出てからでも押せます。</p>
+    </section>
 
     <!-- 3. 押したあと -->
     <section id="used" class="card stamp hidden" aria-live="polite">
@@ -85,14 +79,26 @@
         <p class="notice again hidden" id="used-again"></p>
       <ul class="stamp-one" id="used-stamp"></ul>
         <p class="greet serif" id="used-name"></p>
-        <p id="used-words" class="word-tags hidden"></p>
-        <p class="muted small">行ってきた日時：<span id="used-at"></span></p>
+        <p class="muted small">押した日時：<span id="used-at"></span></p>
+        <!-- スタンプに添えるひとこと：選ぶとすぐ保存。選び直せる -->
+        <div class="ask words-box">
+          <p class="ask-title">スタンプにひとこと添える</p>
+          <div id="words" class="chips" role="group" aria-label="スタンプに添えるひとこと"></div>
+          <p class="err" id="words-err" role="alert"></p>
+          <p class="muted small" id="words-note">選ぶと、すぐスタンプに添えられます。あとから変えられます。</p>
+        </div>
       </div>
       <!-- 転送された人など、このスマホで押していない人 -->
       <p id="used-other" class="hidden">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
-      <!-- 来店の問い：このスマホで押した人に、答えていなければ出す（答えなくてよい） -->
-      <div class="ask hidden" id="ask">
-        <p class="ask-title">よければ2つだけ（10秒）</p>
+    </section>
+
+    <!-- 来店の問い：このスマホで押した人に、答えていなければ畳んで出す（開かなくてよい） -->
+    <details class="card howto ask-drawer hidden" id="ask">
+      <summary>
+        <span class="howto-title">よかったら教えてください（任意）</span>
+        <span class="howto-sub">紹介状の改善に役立てます</span>
+      </summary>
+      <div class="howto-body" id="ask-body">
         <div id="ask-from-box">
           <p class="ask-q">どちらから来ましたか</p>
           <div class="chips" id="ask-from" role="radiogroup" aria-label="どちらから来ましたか"></div>
@@ -100,16 +106,13 @@
         <p class="ask-q">この紹介がなかったら、今夜はどうしていましたか</p>
         <div class="chips" id="ask-else" role="radiogroup" aria-label="この紹介がなかったら"></div>
         <p class="err" id="ask-err" role="alert"></p>
-        <div class="ask-actions">
-          <button class="btn primary small" type="button" id="ask-send" disabled>送る</button>
-          <button class="linkish" type="button" id="ask-skip">答えない</button>
-        </div>
-        <p class="muted small">答えは、誰のものか分からない形でまとめて、お店と街のために使います。</p>
+        <button class="btn primary" type="button" id="ask-send" disabled>回答を保存する</button>
       </div>
-      <p class="muted small hidden" id="ask-thanks">ありがとうございました。</p>
-      <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
-      <div class="card-box hidden" id="card-box"></div>
-    </section>
+      <p class="ask-thanks hidden" id="ask-thanks">ありがとうございました。</p>
+    </details>
+
+    <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
+    <section class="card card-box hidden" id="card-box"></section>
 
     <!-- 期限切れ・停止 -->
     <section id="closed-state" class="card hidden">
@@ -119,9 +122,10 @@
 
   <p class="foot">行きつけの紹介状（試験運用中）</p>
 </main>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027a"></script>
-<script src="common.js?v=20261027a"></script>
+<script src="config.js?v=20261027b"></script>
+<script src="common.js?v=20261027b"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -149,17 +153,36 @@
     return Array.prototype.map.call(document.querySelectorAll('input[name="word"]:checked'), function (c) { return c.value; });
   }
 
-  function renderWords(choices) {
+  function drawStamp(d, words) {
+    $('used-stamp').innerHTML = S.stampHtml({ shop: d.shop.name, from: d.from, date: d.usedAt, words: words }, 0);
+  }
+
+  // スタンプに添えるひとこと。押した本人だけ。選ぶたびに保存し、スタンプの絵にもすぐ出す
+  var wordsTimer = null, wordsSeq = 0;
+  function renderWords(d) {
     var box = $('words');
-    var keep = pickedWords();
     box.innerHTML = '';
-    (choices || []).forEach(function (w) {
+    (d.wordChoices || []).forEach(function (w) {
       var l = document.createElement('label');
       l.className = 'chip';
       l.innerHTML = '<input type="checkbox" name="word" value="' + S.esc(w) + '"><span>' + S.wordIcon(w) + S.esc(w) + '</span>';
-      l.querySelector('input').checked = keep.indexOf(w) >= 0;
+      l.querySelector('input').checked = (d.words || []).indexOf(w) >= 0;
+      l.querySelector('input').addEventListener('change', function () { saveWords(d); });
       box.appendChild(l);
     });
+  }
+  function saveWords(d) {
+    var words = pickedWords();
+    drawStamp(d, words);
+    $('words-err').textContent = '';
+    clearTimeout(wordsTimer);
+    // 続けて選んだときは、最後の選び方だけを送る
+    wordsTimer = setTimeout(function () {
+      var seq = ++wordsSeq;
+      S.post({ action: 'words', id: d.id, key: S.myKey(), words: words })
+        .then(function (r) { if (seq === wordsSeq) { d.words = r.words; S.toast('スタンプに添えました'); } })
+        .catch(function (e) { if (seq === wordsSeq) $('words-err').textContent = S.message(e); });
+    }, 600);
   }
 
   function render(d) {
@@ -191,30 +214,16 @@
     // 下に何も出さない時点では、区切り線と余白も消す
     document.querySelector('.letter').classList.toggle('compact', atShop || d.status === 'used');
 
-    var form = $('visit-form');
-    if (unused) {
-      renderWords(d.wordChoices);
-      if (atShop) {
-        $('visit-title').textContent = (name ? name + '、' : '') + '楽しんでいただけましたか';
-        $('visit-slot').appendChild(form);
-        form.classList.remove('hidden');
-      } else {
-        // 受け取った直後は「行ってきました」を出さない（シールを読んだときだけ）
-        form.classList.add('hidden');
-      }
-    } else {
-      form.classList.add('hidden');
-    }
+    // 受け取った直後は「スタンプを押す」を出さない（シールを読んだときだけ）
 
     var mine = d.status === 'used' && (!!justPressed || S.pressedHere(d.id));
     $('used-mine').classList.toggle('hidden', !mine);
     $('used-other').classList.toggle('hidden', d.status !== 'used' || mine);
     if (d.status === 'used' && mine) {
-      $('used-name').textContent = (name ? name + '、' : '') + 'ありがとうございました';
+      $('used-name').innerHTML = S.esc(d.shop.name) + 'の<br>スタンプを押しました';
       $('used-at').textContent = d.usedAt;
-      $('used-stamp').innerHTML = S.stampHtml({ shop: d.shop.name, from: d.from, date: d.usedAt, words: d.words }, 0);
-      $('used-words').innerHTML = (d.words || []).map(function (w) { return '<span>' + S.wordIcon(w) + S.esc(w) + '</span>'; }).join('');
-      $('used-words').classList.toggle('hidden', !(d.words || []).length);
+      drawStamp(d, d.words);
+      renderWords(d);
     }
     $('used').classList.toggle('just-pressed', !!justPressed);
     // もう一度QRを読んだとき：今日押したのではないことをはっきり伝える
@@ -252,6 +261,8 @@
     var show = mine && !S.answered(d.id) && (d.answerElse || []).length > 0;
     $('ask').classList.toggle('hidden', !show);
     if (!show) return;
+    $('ask-body').classList.remove('hidden');
+    $('ask-thanks').classList.add('hidden');
     var askFrom = !S.fromAnswered();
     $('ask-from-box').classList.toggle('hidden', !askFrom);
     function chips(box, name, list) {
@@ -272,14 +283,10 @@
       S.post({ action: 'answer', id: d.id, from: from, else: picked('ask-else') })
         .then(function () {
           S.markAnswered(d.id, !!from);
-          $('ask').classList.add('hidden');
+          $('ask-body').classList.add('hidden');
           $('ask-thanks').classList.remove('hidden');
         })
         .catch(function (e) { $('ask-err').textContent = S.message(e); update(); });
-    };
-    $('ask-skip').onclick = function () {
-      S.markAnswered(d.id, false);
-      $('ask').classList.add('hidden');
     };
   }
 
@@ -287,7 +294,7 @@
   function renderPassBox(p, justIssued) {
     var box = $('card-box');
     if (!p) { box.classList.add('hidden'); return; }
-    var lead = '<p class="muted">来店スタンプを押しました。</p>';
+    var lead = '';
     var unsaved = S.keyIsSaved() ? '' :
       '<p class="notice warn small">このブラウザでは、パスポートの情報を保存できません。次に押すときは新しいパスポートになるので、発行したら今のうちにリンクを送っておいてください。</p>';
     if (!p.issued) {
@@ -320,7 +327,7 @@
     $('visit-err').textContent = '';
     // 鍵は押す前にこのスマホで作っておく。応答が届かなくても、押し直せば同じ結果が返る
     S.rememberLetter(letter.id, letter.shop.id, { pending: true });
-    S.post({ action: 'visit', id: letter.id, at: at, words: pickedWords(), key: S.ensureKey() })
+    S.post({ action: 'visit', id: letter.id, at: at, words: [], key: S.ensureKey() })
       .then(function (d) {
         S.rememberLetter(d.id, d.shop.id, { pressed: true });
         justPressed = d.pass || null;

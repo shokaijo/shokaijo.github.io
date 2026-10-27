@@ -11,7 +11,8 @@
     bad_key: 'このスマホのパスポートの情報が読めませんでした。ページを開き直して、もう一度お試しください。',
     pass_name_required: 'ニックネームを入れてください。',
     pass_no_stamp: 'スタンプが押されてから発行できます。',
-    not_visited: '「行ってきました」を押してから答えられます。',
+    not_visited: 'スタンプを押してから答えられます。',
+    not_yours: 'このスマホで押したスタンプではないので、変えられません。',
     no_answer: 'どれか1つ選んでください。',
     letter_used: 'この紹介状は使用済みです。',
     letter_expired: 'この紹介状は期限が切れています。',
@@ -329,7 +330,7 @@
   }
   function fromAnswered() { return storeGet('shokaijo:from-answered') === '1'; }
 
-  // このスマホで「行ってきました」を押した紹介状か（転送された人と見分ける）
+  // このスマホでスタンプを押した紹介状か（転送された人と見分ける）
   function pressedHere(id) {
     return rememberedLetters().some(function (x) { return x.id === id && x.pressed; });
   }

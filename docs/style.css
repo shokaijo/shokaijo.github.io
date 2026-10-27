@@ -385,7 +385,8 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .stamp-one .hanko-shop.s { font-size: 13px; }
 .stamp-one .hanko-date { font-size: 12px; }
 .stamp-one .stamp-from { display: none; }
-.stamp-one .stamp-words { display: none; }
+.stamp-one .stamp-words { margin-top: 6px; gap: 6px; }
+.stamp-one .stamp-words .icon { width: 20px; height: 20px; }
 .word-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 10px; }
 .word-tags span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; background: var(--soft); color: var(--accent); font-size: 14px; }
 .chip span .icon { width: 16px; height: 16px; margin-right: 3px; vertical-align: -3px; }
@@ -581,3 +582,14 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .ask-actions { display: flex; align-items: center; gap: 16px; margin: 4px 0 6px; }
 .ask-actions .btn { min-width: 96px; }
 #ask-thanks { margin: 10px 0 0; }
+
+/* 押したあと：ひとことは押したカードの中、来店の問いは畳んだ別カード */
+.words-box { margin-top: 16px; }
+.words-box .chips { justify-content: flex-start; }
+.ask-drawer .ask-q { font-size: 14px; margin: 10px 0 6px; }
+.ask-drawer .chip span { min-width: 0; font-size: 14px; padding: 6px 12px; }
+.ask-drawer #ask-send { width: 100%; margin-top: 12px; }
+.ask-thanks { margin: 0 18px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 14px; }
+section.card-box { margin-top: 0; padding-top: 20px; border-top: 1px solid var(--line); }
+.words-box .err:empty, .visit .err:empty { min-height: 0; margin: 0; }
+.words-box .err:not(:empty) { margin-top: 6px; }

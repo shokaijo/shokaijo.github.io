@@ -368,6 +368,23 @@ test('名前の見えない文字は取り除き、全角半角をそろえる�
   assert.ok(n <= 2, '紹介状シートを ' + n + ' 回読んだ');
 });
 
+test('ひとこと：押したあとに、押したスマホの鍵でだけ添えられ、選び直せる', () => {
+  const env = fresh();
+  const r = env.sandbox.addReferrer('紹介元A', '店').split('r=')[1];
+  const id = issue(env, r, 'shop-b').data.id;
+  const key = newKey();
+  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['楽しかった'] }), { ok: false, error: 'not_yours' }, '押す前は添えられない');
+  env.post({ action: 'visit', id, at: 'shop-b', words: [], key });
+  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['楽しかった', '最悪だった', '楽しかった'] }).data.words, ['楽しかった']);
+  assert.strictEqual(letterRow(env, id)['ひとこと'], '楽しかった');
+  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: ['ありがとう', 'また行きたい'] }).data.words, ['ありがとう', 'また行きたい']);
+  assert.strictEqual(letterRow(env, id)['ひとこと'], 'ありがとう、また行きたい');
+  assert.deepStrictEqual(env.post({ action: 'words', id, key: newKey(), words: [] }), { ok: false, error: 'not_yours' }, '別の鍵では変えられない');
+  assert.deepStrictEqual(env.post({ action: 'words', id, key: 'x', words: [] }), { ok: false, error: 'bad_key' });
+  assert.deepStrictEqual(env.post({ action: 'words', id, key, words: [] }).data.words, []);
+  assert.strictEqual(letterRow(env, id)['ひとこと'], '');
+});
+
 test('来店の問い：使用済みの紹介状からだけ受け付け、紹介状IDもパスポートも残さない', () => {
   const env = fresh();
   const [a, b] = twoLetters(env);

@@ -43,7 +43,7 @@ var HEAD = {
 var STATUS = { UNUSED: '未使用', USED: '使用済み', STOPPED: '停止', EXPIRED: '期限切れ' };
 var HONORIFICS = ['さん', 'ちゃん', 'くん', 'なし'];
 var NAME_MAX = 8;   // 宛名の文字数（「まっちゃんたち」のようなグループ宛ても入る長さ）
-// 「行ってきました」に添えられる言葉。前向きなものだけを置く（自由記述は受け付けない）
+// スタンプに添えられる言葉。前向きなものだけを置く（自由記述は受け付けない）
 var WORDS = ['ありがとう', '楽しかった', 'また行きたい'];
 // 来店の問いの選択肢（答えなくてもよい）
 var ANSWER_FROM = ['吉祥寺の近く', '東京のほかの街', '東京の外から（出張・旅行）', '海外から'];
@@ -78,6 +78,7 @@ function doPost(e) {
     if (body.action === 'issue_pass') return withLock_(function () { return issuePass_(body.key, body.name); });
     if (body.action === 'mine') return myPass_(body.key);
     if (body.action === 'answer') return withLock_(function () { return answer_(body.id, body.from, body.else); });
+    if (body.action === 'words') return withLock_(function () { return setWords_(body.id, body.key, body.words); });
     throw userError_('unknown_action');
   });
 }
@@ -219,7 +220,7 @@ function issueLetter_(refId, shopId, nickname, honorific) {
 }
 
 /**
- * お客さんが「行ってきました」を押したとき。使用済みにして、選んだ言葉を残す。
+ * お客さんが「スタンプを押す」を押したとき。使用済みにする（言葉は押したあとに setWords_ で添える）。
  * at はお店のシールから来たときの店ID（紹介状の画面から押したときは空）。
  * 特典がないので来店を厳しくは確かめない。シールの店と行き先が違うときだけ止める。
  */
@@ -244,9 +245,7 @@ function visit_(letterId, atShopId, words, key) {
     throw userError_('letter_' + statusCode_(state));
   }
 
-  var picked = (Array.isArray(words) ? words : []).filter(function (w, i, a) {
-    return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
-  });
+  var picked = pickWords_(words);
 
   var now = new Date();
   var patch = {
@@ -259,6 +258,26 @@ function visit_(letterId, atShopId, words, key) {
   setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, patch);
   Object.keys(patch).forEach(function (k) { hit.row[k] = patch[k]; });
   return visitResult_(hit.row, pub);
+}
+
+function pickWords_(words) {
+  return (Array.isArray(words) ? words : []).filter(function (w, i, a) {
+    return WORDS.indexOf(w) >= 0 && a.indexOf(w) === i;
+  });
+}
+
+/**
+ * 押したあとに、スタンプへひとことを添える（選び直しも同じ）。
+ * 押したスマホの鍵を持っている人だけ。転送された人は変えられない。
+ */
+function setWords_(letterId, key, words) {
+  if (!isKey_(key)) throw userError_('bad_key');
+  var hit = findLetter_(letterId);
+  if (!hit) throw userError_('letter_not_found');
+  if (effectiveStatus_(hit.row) !== STATUS.USED || !hit.row['台紙ID'] || String(hit.row['台紙ID']) !== publicIdOf_(key)) throw userError_('not_yours');
+  var picked = pickWords_(words);
+  setCells_(SHEET.LETTERS, HEAD.LETTERS, hit.rowIndex, { 'ひとこと': picked.join('、') });
+  return { words: picked };
 }
 
 /** 押した本人にだけ返す形：紹介状の中身と、自分のパスポートの様子 */
@@ -521,7 +540,7 @@ function publicLetter_(row) {
 
 /**
  * シート上の状態に、紹介元の停止を重ねた「いまの状態」。
- * 期限は受け取った人には関係させない（期限を過ぎても見られ、「行ってきました」も押せる）。
+ * 期限は受け取った人には関係させない（期限を過ぎても見られ、スタンプも押せる）。
  * 期限は、記録の分析（期限内に来たか）と、宛名を消す時期の目安にだけ使う。
  */
 function effectiveStatus_(row) {
