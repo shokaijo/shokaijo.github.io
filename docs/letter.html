@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027c">
+<link rel="stylesheet" href="style.css?v=20261027d">
 </head>
 <body>
 <main class="wrap">
@@ -111,8 +111,8 @@
         <p class="err" id="ask-err" role="alert"></p>
         <button class="btn primary" type="button" id="ask-send" disabled>回答を保存する</button>
       </div>
-      <p class="ask-thanks hidden" id="ask-thanks">ありがとうございました。</p>
     </details>
+    <p class="ask-thanks hidden" id="ask-thanks">ご回答ありがとうございました。</p>
 
 
     <!-- 期限切れ・停止 -->
@@ -125,8 +125,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027c"></script>
-<script src="common.js?v=20261027c"></script>
+<script src="config.js?v=20261027d"></script>
+<script src="common.js?v=20261027d"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
@@ -262,7 +262,6 @@
     var show = mine && !S.answered(d.id) && (d.answerElse || []).length > 0;
     $('ask').classList.toggle('hidden', !show);
     if (!show) return;
-    $('ask-body').classList.remove('hidden');
     $('ask-thanks').classList.add('hidden');
     var askFrom = !S.fromAnswered();
     $('ask-from-box').classList.toggle('hidden', !askFrom);
@@ -284,7 +283,8 @@
       S.post({ action: 'answer', id: d.id, from: from, else: picked('ask-else') })
         .then(function () {
           S.markAnswered(d.id, !!from);
-          $('ask-body').classList.add('hidden');
+          // 答えたら畳みごと消して、お礼を一行だけ残す
+          $('ask').classList.add('hidden');
           $('ask-thanks').classList.remove('hidden');
         })
         .catch(function (e) { $('ask-err').textContent = S.message(e); update(); });

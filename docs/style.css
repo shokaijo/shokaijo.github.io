@@ -581,7 +581,6 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .ask .chip span { min-width: 0; font-size: 14px; padding: 6px 12px; background: var(--card); }
 .ask-actions { display: flex; align-items: center; gap: 16px; margin: 4px 0 6px; }
 .ask-actions .btn { min-width: 96px; }
-#ask-thanks { margin: 10px 0 0; }
 
 /* 押したあと：ひとことは押したカードの中、来店の問いは畳んだ別カード */
 .words-box { margin-top: 16px; }
@@ -589,7 +588,7 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 .ask-drawer .ask-q { font-size: 14px; margin: 10px 0 6px; }
 .ask-drawer .chip span { min-width: 0; font-size: 14px; padding: 6px 12px; }
 .ask-drawer #ask-send { width: 100%; margin-top: 12px; }
-.ask-thanks { margin: 0 18px; padding: 14px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.ask-thanks { margin: 0 0 16px; text-align: center; font-size: 13px; color: var(--muted); }
 section.card-box { margin-top: 0; padding-top: 20px; border-top: 1px solid var(--line); }
 .words-box .err:empty, .visit .err:empty { min-height: 0; margin: 0; }
 .words-box .err:not(:empty) { margin-top: 6px; }

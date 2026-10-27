@@ -187,6 +187,8 @@ with sync_playwright() as p:
     page.locator("#ask-else label.chip", has_text="家で過ごしていた").click()
     page.click("#ask-send")
     page.wait_for_selector("#ask-thanks:not(.hidden)")
+    check("答えたら問いは消え、お礼が一行だけ出る", page.locator("#ask").is_hidden() and page.inner_text("#ask-thanks") == "ご回答ありがとうございました。")
+    page.screenshot(path=str(out / "5_answered.png"), full_page=True)
     ans = state().get("answers") or []
     check("答えは店・時間帯とともに残り、紹介状IDは残らない", len(ans) == 2 and ans[1][2] == "shop-b" and ans[1][6] == "海外から" and ans[1][7] == "家で過ごしていた" and letter_id not in json.dumps(ans))
     # 発行する前に開き直しても、発行の欄に戻れる（指摘3）
