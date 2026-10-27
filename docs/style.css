@@ -593,3 +593,10 @@ label.field { display: block; font-weight: 600; margin: 0 0 6px; }
 section.card-box { margin-top: 0; padding-top: 20px; border-top: 1px solid var(--line); }
 .words-box .err:empty, .visit .err:empty { min-height: 0; margin: 0; }
 .words-box .err:not(:empty) { margin-top: 6px; }
+
+/* パスポートの発行を主に、来店の問いは控えめに（発行の下に置く） */
+.card-box .issue-title { font-size: 20px; line-height: 1.5; }
+.ask-drawer { background: transparent; border-style: dashed; }
+.ask-drawer > summary { padding-top: 12px; padding-bottom: 12px; }
+.ask-drawer .howto-title { font-size: 14px; font-weight: 600; color: var(--muted); }
+.ask-drawer .howto-sub { font-size: 12px; }

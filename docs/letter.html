@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>紹介状</title>
-<link rel="stylesheet" href="style.css?v=20261027b">
+<link rel="stylesheet" href="style.css?v=20261027c">
 </head>
 <body>
 <main class="wrap">
@@ -92,6 +92,9 @@
       <p id="used-other" class="hidden">この紹介状は使用済みです。紹介してくれた人に、新しい紹介状を頼んでみてください。</p>
     </section>
 
+    <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
+    <section class="card card-box hidden" id="card-box"></section>
+
     <!-- 来店の問い：このスマホで押した人に、答えていなければ畳んで出す（開かなくてよい） -->
     <details class="card howto ask-drawer hidden" id="ask">
       <summary>
@@ -111,8 +114,6 @@
       <p class="ask-thanks hidden" id="ask-thanks">ありがとうございました。</p>
     </details>
 
-    <!-- はしごパスポート：未発行なら発行の欄、発行済みなら表紙 -->
-    <section class="card card-box hidden" id="card-box"></section>
 
     <!-- 期限切れ・停止 -->
     <section id="closed-state" class="card hidden">
@@ -124,8 +125,8 @@
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=20261027b"></script>
-<script src="common.js?v=20261027b"></script>
+<script src="config.js?v=20261027c"></script>
+<script src="common.js?v=20261027c"></script>
 <script>
 (function () {
   var S = window.Shokaijo;
